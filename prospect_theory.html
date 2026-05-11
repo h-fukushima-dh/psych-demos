@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>プロスペクト理論体験 — 損失と利得の心理学</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700;900&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  --bg:      #FFFFFF;
+  --ink:     #111827;
+  --surface: #F3F4F6;
+  --card:    #FFFFFF;
+  --border:  #E5E7EB;
+  --muted:   #9CA3AF;
+  --gain:    #059669;  /* green — gains */
+  --loss:    #DC2626;  /* red — losses */
+  --neutral: #2563EB;  /* blue — neutral choice */
+  --purple:  #7C3AED;
+  --gold:    #D97706;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans JP', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.screen { display: none; }
+.screen.active { display: flex; flex-direction: column; align-items: center; }
+
+/* ======== INTRO ======== */
+#screen-intro {
+  min-height: 100vh;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  gap: 1.6rem;
+}
+.tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.68rem; letter-spacing: 0.22em;
+  color: var(--muted); text-transform: uppercase;
+  border: 1px solid var(--border);
+  border-radius: 20px; padding: 0.3rem 1rem;
+  display: inline-block;
+  opacity: 0; animation: up .5s .1s forwards;
+}
+.intro-h1 {
+  font-size: clamp(2rem,6vw,3.4rem); font-weight: 900; line-height: 1.2;
+  opacity: 0; animation: up .5s .2s forwards;
+}
+.intro-h1 em { font-style: normal; color: var(--loss); }
+.intro-p {
+  max-width: 460px; font-size: .95rem; line-height: 2;
+  color: var(--muted); font-weight: 300;
+  opacity: 0; animation: up .5s .32s forwards;
+}
+.preview-row {
+  display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
+  opacity: 0; animation: up .5s .44s forwards;
+}
+.prev-card {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 12px; padding: .8rem 1.1rem;
+  font-size: .82rem; font-weight: 700;
+  display: flex; align-items: center; gap: .4rem;
+}
+.btn-start {
+  background: var(--ink); color: #fff; border: none;
+  padding: 1.1rem 3rem; font-size: 1rem;
+  font-family: 'Noto Sans JP', sans-serif; font-weight: 700;
+  border-radius: 50px; cursor: pointer;
+  transition: transform .15s, box-shadow .15s;
+  opacity: 0; animation: up .5s .56s forwards;
+}
+.btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(17,24,39,.18); }
+
+/* ======== QUIZ ======== */
+#screen-quiz {
+  min-height: 100vh;
+  padding: 1.5rem 1.2rem 2.5rem;
+  gap: 1.1rem; max-width: 580px;
+  margin: 0 auto; width: 100%;
+  justify-content: flex-start;
+}
+.quiz-meta {
+  width: 100%; display: flex;
+  justify-content: space-between; align-items: center;
+}
+.q-label { font-family: 'Space Mono', monospace; font-size: .72rem; letter-spacing: .1em; color: var(--muted); }
+.q-type-badge {
+  font-family: 'Space Mono', monospace; font-size: .68rem;
+  padding: .18rem .65rem; border-radius: 20px; font-weight: 700;
+}
+.prog-bar { width: 100%; height: 4px; background: var(--surface); border-radius: 2px; overflow: hidden; }
+.prog-fill { height: 100%; background: var(--ink); border-radius: 2px; transition: width .35s ease; width: 0%; }
+
+.q-card {
+  width: 100%; background: var(--card);
+  border: 1.5px solid var(--border); border-radius: 16px;
+  overflow: hidden; box-shadow: 0 2px 12px rgba(17,24,39,.06);
+  animation: cardIn .25s forwards;
+}
+.q-card-top {
+  padding: 1.4rem 1.5rem 1rem;
+}
+.q-scenario { font-size: .8rem; color: var(--muted); font-weight: 300; margin-bottom: .7rem; line-height: 1.6; }
+.q-text { font-size: clamp(.98rem,3vw,1.15rem); font-weight: 700; line-height: 1.65; }
+
+.q-amount {
+  margin: .8rem 0 0;
+  font-family: 'Space Mono', monospace;
+  font-size: clamp(1.4rem,4vw,2rem); font-weight: 700;
+  text-align: center; padding: .6rem 1rem;
+  border-radius: 8px;
+}
+
+.choices { display: flex; flex-direction: column; gap: .65rem; padding: 0 1.5rem 1.5rem; }
+.choice-btn {
+  width: 100%; background: var(--surface);
+  border: 2px solid var(--border); border-radius: 10px;
+  padding: .95rem 1.2rem; font-size: .95rem;
+  font-family: 'Noto Sans JP', sans-serif; font-weight: 400;
+  color: var(--ink); cursor: pointer; text-align: left;
+  line-height: 1.6; transition: border-color .15s, background .15s, transform .1s;
+  display: flex; align-items: flex-start; gap: .65rem;
+}
+.choice-btn:hover:not(:disabled) { border-color: var(--ink); background: var(--bg); transform: translateX(3px); }
+.choice-btn.chosen { background: var(--ink); border-color: var(--ink); color: #fff; }
+.c-letter { font-family: 'Space Mono', monospace; font-size: .75rem; font-weight: 700; min-width: 1.3rem; padding-top: .1rem; opacity: .5; }
+.choice-btn.chosen .c-letter { opacity: .7; }
+
+/* ======== RESULT ======== */
+#screen-result {
+  min-height: 100vh; padding: 2rem 1.2rem 3rem;
+  gap: 1.4rem; max-width: 640px;
+  margin: 0 auto; width: 100%;
+  justify-content: flex-start;
+}
+.res-header { text-align: center; width: 100%; }
+.res-h { font-size: clamp(1.5rem,4vw,2rem); font-weight: 900; line-height: 1.2; margin-bottom: .4rem; }
+.res-h em { font-style: normal; color: var(--loss); }
+.res-sub { font-size: .9rem; color: var(--muted); font-weight: 300; line-height: 1.8; max-width: 460px; margin: 0 auto; }
+
+/* Pattern cards */
+.pattern-grid { width: 100%; display: flex; flex-direction: column; gap: .65rem; }
+.pattern-card {
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 12px; padding: 1rem 1.2rem;
+  display: flex; gap: 1rem; align-items: flex-start;
+}
+.pattern-icon { font-size: 1.6rem; flex-shrink: 0; }
+.pattern-info {}
+.pattern-title { font-size: .9rem; font-weight: 700; margin-bottom: .25rem; }
+.pattern-desc { font-size: .82rem; color: var(--muted); line-height: 1.7; font-weight: 300; }
+.pattern-your { font-size: .78rem; font-weight: 700; margin-top: .35rem; }
+
+/* Value curve card */
+.curve-card {
+  width: 100%; background: var(--card);
+  border: 1.5px solid var(--border); border-radius: 16px;
+  padding: 1.3rem 1.4rem;
+  box-shadow: 0 2px 12px rgba(17,24,39,.06);
+}
+.curve-card h3 { font-size: 1rem; font-weight: 900; margin-bottom: 1rem; }
+.curve-svg { width: 100%; max-width: 420px; display: block; margin: 0 auto; }
+
+/* Explain */
+.explain-box {
+  width: 100%; background: var(--card);
+  border: 1.5px solid var(--border); border-radius: 16px; padding: 1.3rem 1.4rem;
+}
+.explain-box h3 { font-size: 1rem; font-weight: 900; margin-bottom: .75rem; }
+.explain-box p { font-size: .88rem; color: var(--muted); line-height: 1.9; font-weight: 300; margin-bottom: .55rem; }
+.explain-box p:last-child { margin-bottom: 0; }
+.explain-box strong { color: var(--ink); font-weight: 700; }
+
+.app-grid { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+.app-item { background: var(--surface); border-radius: 10px; padding: .85rem 1rem; }
+.app-icon { font-size: 1.2rem; margin-bottom: .25rem; }
+.app-title { font-size: .82rem; font-weight: 700; margin-bottom: .2rem; }
+.app-body { font-size: .75rem; color: var(--muted); line-height: 1.6; font-weight: 300; }
+
+.discuss-box { width: 100%; background: var(--card); border: 1.5px solid var(--border); border-radius: 16px; padding: 1.3rem 1.4rem; }
+.discuss-box h3 { font-size: 1rem; font-weight: 900; margin-bottom: .75rem; }
+.dq { background: var(--surface); border-radius: 8px; padding: .75rem 1rem; font-size: .85rem; line-height: 1.7; display: flex; gap: .5rem; margin-bottom: .5rem; }
+.dq:last-child { margin-bottom: 0; }
+
+.btn-retry {
+  width: 100%; background: var(--ink); color: #fff; border: none;
+  padding: 1rem; font-size: .95rem;
+  font-family: 'Noto Sans JP', sans-serif; font-weight: 700;
+  border-radius: 50px; cursor: pointer;
+  transition: opacity .15s, transform .15s;
+}
+.btn-retry:hover { opacity: .85; transform: translateY(-1px); }
+
+@keyframes up { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+@keyframes cardIn { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
+</style>
+</head>
+<body>
+
+<!-- ======== INTRO ======== -->
+<div id="screen-intro" class="screen active">
+  <span class="tag">行動経済学 ／ 意思決定の心理学</span>
+  <h1 class="intro-h1">損すると<em>なぜ</em><br>こんなに嫌なの？</h1>
+  <p class="intro-p">
+    「1万円もらう」より「1万円失う」の方がずっと辛く感じませんか？<br>
+    8つの選択問題を通して、あなたの意思決定のクセを体験しましょう。
+  </p>
+  <div class="preview-row">
+    <div class="prev-card"><span>💰</span>利得 vs 損失</div>
+    <div class="prev-card"><span>🎲</span>確実 vs 賭け</div>
+    <div class="prev-card"><span>🧠</span>損失回避</div>
+    <div class="prev-card"><span>📊</span>参照点効果</div>
+  </div>
+  <button class="btn-start" onclick="startQuiz()">体験スタート（全8問）→</button>
+</div>
+
+<!-- ======== QUIZ ======== -->
+<div id="screen-quiz" class="screen">
+  <div class="quiz-meta">
+    <span class="q-label" id="q-num">Q1 / 8</span>
+    <span class="q-type-badge" id="q-badge"></span>
+  </div>
+  <div class="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
+  <div class="q-card" id="q-card"><!-- injected --></div>
+</div>
+
+<!-- ======== RESULT ======== -->
+<div id="screen-result" class="screen">
+  <div class="res-header">
+    <div class="res-h">あなたの<em>損失回避</em>パターン</div>
+    <div class="res-sub" id="res-sub">—</div>
+  </div>
+
+  <div class="pattern-grid" id="pattern-grid"></div>
+
+  <!-- Value function curve -->
+  <div class="curve-card">
+    <h3>📈 プロスペクト理論の「価値関数」</h3>
+    <svg class="curve-svg" viewBox="0 0 340 220" xmlns="http://www.w3.org/2000/svg">
+      <!-- Grid -->
+      <line x1="170" y1="10" x2="170" y2="210" stroke="#E5E7EB" stroke-width="1"/>
+      <line x1="20" y1="110" x2="320" y2="110" stroke="#E5E7EB" stroke-width="1"/>
+      <!-- Axis labels -->
+      <text x="175" y="18" font-size="10" fill="#9CA3AF" font-family="sans-serif">利得</text>
+      <text x="175" y="208" font-size="10" fill="#9CA3AF" font-family="sans-serif">損失</text>
+      <text x="305" y="108" font-size="10" fill="#9CA3AF" font-family="sans-serif">+</text>
+      <text x="22" y="108" font-size="10" fill="#9CA3AF" font-family="sans-serif">−</text>
+      <!-- Gain curve (concave) — green -->
+      <path d="M170,110 Q210,80 240,68 Q270,58 310,52"
+            fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- Loss curve (convex, steeper) — red -->
+      <path d="M170,110 Q130,148 100,168 Q70,188 30,200"
+            fill="none" stroke="#DC2626" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- Reference point dot -->
+      <circle cx="170" cy="110" r="4" fill="#111827"/>
+      <text x="176" y="122" font-size="10" fill="#111827" font-family="sans-serif" font-weight="bold">参照点</text>
+      <!-- Annotations -->
+      <text x="245" y="60" font-size="10" fill="#059669" font-family="sans-serif">利得は</text>
+      <text x="245" y="73" font-size="10" fill="#059669" font-family="sans-serif">緩やか</text>
+      <text x="32" y="178" font-size="10" fill="#DC2626" font-family="sans-serif">損失は</text>
+      <text x="32" y="191" font-size="10" fill="#DC2626" font-family="sans-serif">急カーブ</text>
+      <!-- Asymmetry marker -->
+      <text x="120" y="45" font-size="9" fill="#7C3AED" font-family="sans-serif">損失の痛み</text>
+      <text x="120" y="57" font-size="9" fill="#7C3AED" font-family="sans-serif">≒ 利得の2倍</text>
+    </svg>
+    <p style="font-size:.82rem;color:var(--muted);text-align:center;margin-top:.6rem;font-weight:300">
+      同じ金額でも、<strong style="color:var(--loss)">失う痛み</strong>は<strong style="color:var(--gain)">得る喜び</strong>の約2倍強く感じる
+    </p>
+  </div>
+
+  <div class="explain-box">
+    <h3>🧠 プロスペクト理論とは</h3>
+    <p>カーネマンとトヴェルスキー（1979）が提唱した<strong>行動経済学の中心理論</strong>です。人間は「期待効用理論」が予測するような合理的判断ではなく、以下の3つの特性で意思決定することを示しました。</p>
+    <p><strong>① 損失回避：</strong>同じ大きさの損失と利得では、損失の方が約2倍の心理的インパクトがある。</p>
+    <p><strong>② 参照点依存：</strong>絶対的な価値ではなく、「現状（参照点）からの変化」で感じる。年収500万円でも、600万から下がった場合と400万から上がった場合では感じ方が異なる。</p>
+    <p><strong>③ 感応度逓減：</strong>100万→200万の変化より10万→110万の変化の方が大きく感じる。変化量が同じでも、出発点が違うと感じ方が変わる。</p>
+  </div>
+
+  <div>
+    <div style="font-family:'Space Mono',monospace;font-size:.68rem;letter-spacing:.15em;color:var(--muted);text-transform:uppercase;margin-bottom:.6rem">日常・社会とのつながり</div>
+    <div class="app-grid">
+      <div class="app-item">
+        <div class="app-icon">💹</div>
+        <div class="app-title">投資・株</div>
+        <div class="app-body">含み損を抱えた株を売れずに損失を拡大させる「損切りできない」行動はまさに損失回避。</div>
+      </div>
+      <div class="app-item">
+        <div class="app-icon">🛒</div>
+        <div class="app-title">マーケティング</div>
+        <div class="app-body">「今だけ！残り3点」「期間限定」は損失回避を利用した販売戦略。</div>
+      </div>
+      <div class="app-item">
+        <div class="app-icon">🏥</div>
+        <div class="app-title">医療・公衆衛生</div>
+        <div class="app-body">「手術で90%が生存」より「10%が死亡」の方が手術を避ける判断につながる（フレーミング効果）。</div>
+      </div>
+      <div class="app-item">
+        <div class="app-icon">🎮</div>
+        <div class="app-title">ゲーム設計</div>
+        <div class="app-body">ガチャの「もったいない」感、ログインボーナス失効の焦り——すべて損失回避の活用。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="discuss-box">
+    <h3>💬 考えてみよう</h3>
+    <div class="dq"><span>🤔</span><span>あなたは「100円もらう」と「100円失う」どちらが強く感じましたか？ 何倍くらい違いましたか？</span></div>
+    <div class="dq"><span>🔍</span><span>「損失回避を知っている」と消費行動は変わると思いますか？ バイアスは知識で防げる？</span></div>
+    <div class="dq"><span>💊</span><span>医師が「10%が死亡」と「90%が生存」どちらの言い方をすべきか考えてみよう。これがフレーミング効果。</span></div>
+    <div class="dq"><span>🌍</span><span>プロスペクト理論はカーネマンにノーベル経済学賞をもたらした（2002年）。「人は合理的」という経済学の前提を覆したのはなぜ重要なの？</span></div>
+  </div>
+
+  <button class="btn-retry" onclick="resetAll()">もう一度やってみる</button>
+</div>
+
+<script>
+// ===== QUESTIONS =====
+// type: 'loss_aversion' | 'framing' | 'reference' | 'certainty'
+// rational: 期待効用理論から見た合理的選択 ('a' or 'b')
+// biased: バイアスがかかった場合に多くの人が選ぶ選択肢
+const QUESTIONS = [
+  {
+    type: 'certainty',
+    badge: '確実性効果',
+    badgeCol: '#2563EB',
+    scenario: '💰 お金の選択',
+    q: 'どちらを選びますか？',
+    amount: null,
+    a: '確実に 5,000円 もらえる',
+    b: '50%の確率で 12,000円 もらえる（50%は0円）',
+    rational: 'b',   // 期待値6000円 > 5000円
+    biased: 'a',
+    pattern: 'certainty',
+  },
+  {
+    type: 'loss_aversion',
+    badge: '損失回避',
+    badgeCol: '#DC2626',
+    scenario: '😰 リスクの選択',
+    q: 'どちらの状況が嫌ですか？（より避けたいものを選んでください）',
+    amount: null,
+    a: '確実に 3,000円 失う',
+    b: '60%の確率で 5,000円 失う（40%は損失なし）',
+    rational: 'a',   // 期待損失3000円 < 期待損失3000円（同じ）→ 確実を選ぶはずだが
+    biased: 'b',     // 損失を避けようとギャンブルを選ぶ傾向
+    pattern: 'loss_gamble',
+  },
+  {
+    type: 'framing',
+    badge: 'フレーミング効果',
+    badgeCol: '#7C3AED',
+    scenario: '🏥 医療の場面',
+    q: '新しい手術について聞きます。どちらの説明を聞いたら手術を受けると思いますか？',
+    amount: null,
+    a: '手術を受けた患者の 90% が生存します',
+    b: '手術を受けた患者の 10% が死亡します',
+    rational: null,  // 同じ情報
+    biased: 'a',
+    pattern: 'framing',
+  },
+  {
+    type: 'reference',
+    badge: '参照点効果',
+    badgeCol: '#D97706',
+    scenario: '🛍️ 買い物の場面',
+    q: '同じ商品を同じ金額で買う。どちらが「お得」と感じますか？',
+    amount: null,
+    a: '定価 10,000円 の商品を 8,000円 で買う（2,000円引き）',
+    b: '元々 6,000円 だった商品が値上がりして 8,000円 で買う',
+    rational: null,  // 同じ8000円の支出
+    biased: 'a',
+    pattern: 'reference',
+  },
+  {
+    type: 'loss_aversion',
+    badge: '損失回避',
+    badgeCol: '#DC2626',
+    scenario: '💸 損得の感覚',
+    q: '感覚的に、どちらのインパクトが大きいですか？',
+    amount: null,
+    a: '財布から 3,000円 を落として失う',
+    b: '思いがけず道端で 3,000円 を拾う',
+    rational: null,  // 同じ金額
+    biased: 'a',     // 損失の方が強く感じる
+    pattern: 'loss_feel',
+  },
+  {
+    type: 'certainty',
+    badge: '確実性効果',
+    badgeCol: '#2563EB',
+    scenario: '🎰 ゲームの賞金',
+    q: '賞金付きゲームに参加しました。どちらを選びますか？',
+    amount: null,
+    a: '確実に 1,000円 もらえる',
+    b: '10%の確率で 15,000円 もらえる（90%は0円）',
+    rational: 'b',  // 期待値1500円 > 1000円
+    biased: 'a',
+    pattern: 'certainty',
+  },
+  {
+    type: 'framing',
+    badge: 'フレーミング効果',
+    badgeCol: '#7C3AED',
+    scenario: '🍔 食品の表示',
+    q: '同じ食品の表示。どちらが健康的に感じますか？',
+    amount: null,
+    a: '脂肪分 20% カット',
+    b: '脂肪分が 80% 含まれている',
+    rational: null,  // 同じ情報
+    biased: 'a',
+    pattern: 'framing',
+  },
+  {
+    type: 'loss_aversion',
+    badge: '損失回避',
+    badgeCol: '#DC2626',
+    scenario: '📈 投資の判断',
+    q: '株を持っています。今どうしますか？',
+    amount: null,
+    a: '今売ると確実に 20,000円 の損失になる',
+    b: '持ち続けると 50%の確率でさらに損失、50%の確率で損失ゼロ（損失は同じ期待値）',
+    rational: 'a',   // 期待値が同じなら確実な方
+    biased: 'b',     // 損失を確定させたくないので持ち続ける→塩漬け
+    pattern: 'loss_gamble',
+  },
+];
+
+// ===== PATTERNS =====
+const PATTERNS = {
+  certainty: {
+    icon: '🎯',
+    title: '確実性効果',
+    desc: '期待値が低くても「確実」を選ぶ傾向。損失の場面では逆に「賭け」を選ぶ（損失回避のため）。',
+    col: '#2563EB',
+  },
+  loss_gamble: {
+    icon: '🎲',
+    title: '損失回避×ギャンブル選好',
+    desc: '損失を確定させたくないため、損失の場面では期待値が悪くても「賭け」を選びやすい。投資の「塩漬け」はこれ。',
+    col: '#DC2626',
+  },
+  framing: {
+    icon: '🖼️',
+    title: 'フレーミング効果',
+    desc: '同じ情報でも「利得フレーム」と「損失フレーム」では判断が変わる。医療・マーケティングで広く利用される。',
+    col: '#7C3AED',
+  },
+  reference: {
+    icon: '📍',
+    title: '参照点効果',
+    desc: '「いくら払ったか」ではなく「元の価格からどれだけ変化したか」で価値を判断する。セールの「割引額」に弱い理由。',
+    col: '#D97706',
+  },
+  loss_feel: {
+    icon: '😢',
+    title: '損失の痛み',
+    desc: 'カーネマンの研究では、同じ金額でも損失の痛みは利得の喜びの約2倍。進化的に「失うことへの警戒」が強いためと考えられる。',
+    col: '#DC2626',
+  },
+};
+
+// ===== STATE =====
+let qIdx = 0;
+let answers = []; // { q, chosen, rational, biased, pattern }
+
+// ===== RENDER =====
+function renderQ() {
+  const q = QUESTIONS[qIdx];
+  const badge = document.getElementById('q-badge');
+  badge.textContent = q.badge;
+  badge.style.background = q.badgeCol + '1A';
+  badge.style.color = q.badgeCol;
+  badge.style.border = `1px solid ${q.badgeCol}55`;
+
+  document.getElementById('q-num').textContent = `Q${qIdx+1} / ${QUESTIONS.length}`;
+  document.getElementById('prog-fill').style.width = (qIdx / QUESTIONS.length * 100) + '%';
+
+  const card = document.getElementById('q-card');
+  card.style.animation = 'none'; void card.offsetWidth; card.style.animation = '';
+
+  card.innerHTML = `
+    <div class="q-card-top">
+      <div class="q-scenario">${q.scenario}</div>
+      <div class="q-text">${q.q}</div>
+    </div>
+    <div class="choices">
+      <button class="choice-btn" id="cb-a" onclick="answer('a')">
+        <span class="c-letter">A</span><span>${q.a}</span>
+      </button>
+      <button class="choice-btn" id="cb-b" onclick="answer('b')">
+        <span class="c-letter">B</span><span>${q.b}</span>
+      </button>
+    </div>
+  `;
+}
+
+function answer(ch) {
+  const q = QUESTIONS[qIdx];
+  answers.push({ q, chosen: ch, rational: q.rational, biased: q.biased, pattern: q.pattern });
+
+  document.getElementById(`cb-${ch}`).classList.add('chosen');
+  document.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+
+  setTimeout(() => {
+    qIdx++;
+    if (qIdx >= QUESTIONS.length) showResults();
+    else renderQ();
+  }, 380);
+}
+
+// ===== RESULTS =====
+function showResults() {
+  // Count patterns
+  const patternCounts = {};
+  let biasedCount = 0;
+  answers.forEach(a => {
+    if (a.chosen === a.biased) biasedCount++;
+    patternCounts[a.pattern] = (patternCounts[a.pattern] || 0) + 1;
+  });
+
+  const biasedPct = Math.round(biasedCount / answers.length * 100);
+
+  let sub = '';
+  if (biasedPct >= 75) sub = `8問中 ${biasedCount} 問でバイアスが働きました（${biasedPct}%）。典型的なプロスペクト理論のパターンです！`;
+  else if (biasedPct >= 50) sub = `8問中 ${biasedCount} 問でバイアスが見られました（${biasedPct}%）。損失回避の影響が出ています。`;
+  else sub = `8問中 ${biasedCount} 問でバイアスが見られました（${biasedPct}%）。比較的バイアスに気づきやすいタイプかもしれません。`;
+  document.getElementById('res-sub').textContent = sub;
+
+  // Pattern summary
+  const grid = document.getElementById('pattern-grid');
+  grid.innerHTML = '';
+  const shown = new Set();
+  answers.forEach(a => {
+    if (shown.has(a.pattern)) return;
+    shown.add(a.pattern);
+    const p = PATTERNS[a.pattern];
+    const yourAnswer = a.chosen === a.biased ? '→ あなたもこのパターンを示しました' : '→ このバイアスを回避しました';
+    const yourCol = a.chosen === a.biased ? '#DC2626' : '#059669';
+    const div = document.createElement('div');
+    div.className = 'pattern-card';
+    div.innerHTML = `
+      <div class="pattern-icon">${p.icon}</div>
+      <div class="pattern-info">
+        <div class="pattern-title" style="color:${p.col}">${p.title}</div>
+        <div class="pattern-desc">${p.desc}</div>
+        <div class="pattern-your" style="color:${yourCol}">${yourAnswer}</div>
+      </div>
+    `;
+    grid.appendChild(div);
+  });
+
+  showScreen('screen-result');
+}
+
+// ===== HELPERS =====
+function startQuiz() {
+  qIdx = 0; answers = [];
+  renderQ();
+  showScreen('screen-quiz');
+}
+function resetAll() { showScreen('screen-intro'); }
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => { s.classList.remove('active'); s.style.display = 'none'; });
+  const el = document.getElementById(id);
+  el.classList.add('active'); el.style.display = 'flex';
+  window.scrollTo(0, 0);
+}
+
+document.querySelectorAll('.screen').forEach(s => { s.style.display = 'none'; });
+document.getElementById('screen-intro').style.display = 'flex';
+document.getElementById('screen-intro').classList.add('active');
+</script>
+</body>
+</html>
