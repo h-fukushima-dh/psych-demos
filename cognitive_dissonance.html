@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>認知的不協和体験 — なぜ人は自分を正当化するのか</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700;900&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  --bg:      #FAFAFA;
+  --ink:     #18181B;
+  --surface: #F4F4F5;
+  --card:    #FFFFFF;
+  --border:  #E4E4E7;
+  --muted:   #A1A1AA;
+  --teal:    #0D9488;
+  --amber:   #D97706;
+  --red:     #DC2626;
+  --violet:  #7C3AED;
+  --blue:    #2563EB;
+  --green:   #16A34A;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans JP', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.screen { display: none; }
+.screen.active { display: flex; flex-direction: column; align-items: center; }
+
+/* ======== INTRO ======== */
+#screen-intro {
+  min-height: 100vh;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  gap: 1.8rem;
+}
+.tag {
+  font-family: 'Space Mono', monospace;
+  font-size: .68rem; letter-spacing: .22em; color: var(--muted);
+  text-transform: uppercase; border: 1px solid var(--border);
+  border-radius: 20px; padding: .3rem 1rem; display: inline-block;
+  opacity: 0; animation: up .5s .1s forwards;
+}
+.intro-h1 {
+  font-size: clamp(1.9rem,5.5vw,3.2rem); font-weight: 900; line-height: 1.2;
+  opacity: 0; animation: up .5s .22s forwards;
+}
+.intro-h1 em { font-style: normal; color: var(--teal); }
+.intro-p {
+  max-width: 460px; font-size: .95rem; line-height: 2;
+  color: var(--muted); font-weight: 300;
+  opacity: 0; animation: up .5s .34s forwards;
+}
+
+/* Scenario preview */
+.scenario-preview {
+  display: flex; gap: .7rem; flex-wrap: wrap; justify-content: center;
+  max-width: 460px;
+  opacity: 0; animation: up .5s .46s forwards;
+}
+.sp-chip {
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 10px; padding: .5rem .9rem;
+  font-size: .82rem; font-weight: 700;
+  display: flex; align-items: center; gap: .4rem;
+}
+
+.phase-chips {
+  display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center;
+  opacity: 0; animation: up .5s .56s forwards;
+}
+.ph-chip {
+  background: var(--surface); border-radius: 8px;
+  padding: .4rem .85rem; font-size: .8rem;
+  display: flex; align-items: center; gap: .35rem;
+}
+
+.btn-start {
+  background: var(--ink); color: #fff; border: none;
+  padding: 1.1rem 3rem; font-size: 1rem;
+  font-family: 'Noto Sans JP', sans-serif; font-weight: 700;
+  border-radius: 50px; cursor: pointer;
+  transition: transform .15s, box-shadow .15s;
+  opacity: 0; animation: up .5s .66s forwards;
+}
+.btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(24,24,27,.18); }
+
+/* ======== SCENARIO ======== */
+#screen-scenario {
+  min-height: 100vh;
+  padding: 1.5rem 1.2rem 2.5rem;
+  gap: 1.1rem; max-width: 580px;
+  margin: 0 auto; width: 100%;
+  justify-content: flex-start;
+}
+.sc-header {
+  width: 100%; display: flex;
+  justify-content: space-between; align-items: center;
+}
+.sc-num { font-family: 'Space Mono', monospace; font-size: .72rem; letter-spacing: .1em; color: var(--muted); }
+.sc-badge {
+  font-family: 'Space Mono', monospace; font-size: .68rem;
+  padding: .18rem .65rem; border-radius: 20px; font-weight: 700;
+}
+.prog { width: 100%; height: 4px; background: var(--surface); border-radius: 2px; overflow: hidden; }
+.prog-fill { height: 100%; background: var(--teal); border-radius: 2px; transition: width .35s ease; width: 0%; }
+
+/* Scenario card */
+.sc-card {
+  width: 100%; background: var(--card);
+  border: 1.5px solid var(--border); border-radius: 16px;
+  overflow: hidden; box-shadow: 0 2px 12px rgba(24,24,27,.06);
+  animation: cardIn .25s forwards;
+}
+.sc-top { padding: 1.4rem 1.5rem 1rem; }
+.sc-context {
+  font-size: .8rem; color: var(--muted); font-weight: 300;
+  margin-bottom: .7rem; line-height: 1.6;
+}
+.sc-text { font-size: clamp(.98rem,3vw,1.15rem); font-weight: 700; line-height: 1.65; }
+
+/* Tension meter */
+.tension-wrap { padding: 0 1.5rem; margin-bottom: 1rem; }
+.tension-label {
+  font-size: .75rem; color: var(--muted); margin-bottom: .3rem;
+  display: flex; justify-content: space-between;
+}
+.tension-bar {
+  height: 8px; background: var(--surface);
+  border-radius: 4px; overflow: hidden;
+}
+.tension-fill {
+  height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, var(--teal), var(--amber), var(--red));
+  transition: width .5s ease;
+}
+
+.sc-choices { padding: 0 1.5rem 1.5rem; display: flex; flex-direction: column; gap: .65rem; }
+.choice-btn {
+  width: 100%; background: var(--surface);
+  border: 2px solid var(--border); border-radius: 10px;
+  padding: .95rem 1.2rem; font-size: .95rem;
+  font-family: 'Noto Sans JP', sans-serif; font-weight: 400;
+  color: var(--ink); cursor: pointer; text-align: left;
+  line-height: 1.6; transition: border-color .15s, background .15s, transform .1s;
+  display: flex; align-items: flex-start; gap: .65rem;
+}
+.choice-btn:hover:not(:disabled) { border-color: var(--ink); background: var(--card); transform: translateX(3px); }
+.choice-btn.chosen { background: var(--ink); border-color: var(--ink); color: #fff; }
+.c-key { font-family: 'Space Mono', monospace; font-size: .75rem; font-weight: 700; min-width: 1.3rem; padding-top: .1rem; opacity: .5; }
+.choice-btn.chosen .c-key { opacity: .7; }
+
+/* ======== RESULT ======== */
+#screen-result {
+  min-height: 100vh; padding: 2rem 1.2rem 3rem;
+  gap: 1.4rem; max-width: 640px;
+  margin: 0 auto; width: 100%;
+  justify-content: flex-start;
+}
+.res-header { text-align: center; width: 100%; }
+.res-h { font-size: clamp(1.5rem,4vw,2rem); font-weight: 900; line-height: 1.2; margin-bottom: .4rem; }
+.res-h em { font-style: normal; color: var(--teal); }
+.res-sub { font-size: .9rem; color: var(--muted); font-weight: 300; line-height: 1.8; max-width: 480px; margin: 0 auto; }
+
+/* Pattern summary */
+.pattern-list { width: 100%; display: flex; flex-direction: column; gap: .65rem; }
+.pattern-item {
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 12px; padding: 1rem 1.2rem;
+  display: flex; gap: 1rem; align-items: flex-start;
+}
+.p-icon { font-size: 1.6rem; flex-shrink: 0; }
+.p-body {}
+.p-title { font-size: .9rem; font-weight: 700; margin-bottom: .25rem; }
+.p-desc { font-size: .82rem; color: var(--muted); line-height: 1.7; font-weight: 300; }
+.p-you { font-size: .78rem; font-weight: 700; margin-top: .3rem; }
+
+/* Explain */
+.explain-box {
+  width: 100%; background: var(--card);
+  border: 1.5px solid var(--border); border-radius: 16px; padding: 1.3rem 1.4rem;
+}
+.explain-box h3 { font-size: 1rem; font-weight: 900; margin-bottom: .75rem; }
+.explain-box p { font-size: .88rem; color: var(--muted); line-height: 1.9; font-weight: 300; margin-bottom: .55rem; }
+.explain-box p:last-child { margin-bottom: 0; }
+.explain-box strong { color: var(--ink); font-weight: 700; }
+
+.reduction-grid { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+.r-item { background: var(--surface); border-radius: 10px; padding: .85rem 1rem; }
+.r-icon { font-size: 1.2rem; margin-bottom: .25rem; }
+.r-title { font-size: .82rem; font-weight: 700; margin-bottom: .2rem; }
+.r-body { font-size: .75rem; color: var(--muted); line-height: 1.6; font-weight: 300; }
+
+.discuss-box { width: 100%; background: var(--card); border: 1.5px solid var(--border); border-radius: 16px; padding: 1.3rem 1.4rem; }
+.discuss-box h3 { font-size: 1rem; font-weight: 900; margin-bottom: .75rem; }
+.dq { background: var(--surface); border-radius: 8px; padding: .75rem 1rem; font-size: .85rem; line-height: 1.7; display: flex; gap: .5rem; margin-bottom: .5rem; }
+.dq:last-child { margin-bottom: 0; }
+
+.btn-retry {
+  width: 100%; background: var(--ink); color: #fff; border: none;
+  padding: 1rem; font-size: .95rem;
+  font-family: 'Noto Sans JP', sans-serif; font-weight: 700;
+  border-radius: 50px; cursor: pointer;
+  transition: opacity .15s, transform .15s;
+}
+.btn-retry:hover { opacity: .85; transform: translateY(-1px); }
+
+@keyframes up { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+@keyframes cardIn { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
+</style>
+</head>
+<body>
+
+<!-- ======== INTRO ======== -->
+<div id="screen-intro" class="screen active">
+  <span class="tag">社会心理学 ／ 自己正当化の心理</span>
+  <h1 class="intro-h1">なぜ人は<br><em>自分を正当化</em>するのか？</h1>
+  <p class="intro-p">
+    矛盾した考えや行動が頭の中でぶつかるとき、<br>
+    人は不思議な方法でその緊張を解消しようとします。<br>
+    6つのシナリオでその心理を体験しましょう。
+  </p>
+  <div class="scenario-preview">
+    <div class="sp-chip"><span>🚬</span>タバコと健康</div>
+    <div class="sp-chip"><span>🎓</span>不合格の言い訳</div>
+    <div class="sp-chip"><span>🛒</span>衝動買いの正当化</div>
+    <div class="sp-chip"><span>🌍</span>環境問題と行動</div>
+    <div class="sp-chip"><span>😅</span>つまらない作業</div>
+    <div class="sp-chip"><span>💉</span>努力の正当化</div>
+  </div>
+  <div class="phase-chips">
+    <div class="ph-chip"><span>🧠</span>不協和を感じる</div>
+    <div class="ph-chip"><span>🔧</span>どう解消する？</div>
+    <div class="ph-chip"><span>📊</span>パターンを確認</div>
+  </div>
+  <button class="btn-start" onclick="startScenarios()">体験スタート（全6問）→</button>
+</div>
+
+<!-- ======== SCENARIO ======== -->
+<div id="screen-scenario" class="screen">
+  <div class="sc-header">
+    <span class="sc-num" id="sc-num">シナリオ 1 / 6</span>
+    <span class="sc-badge" id="sc-badge"></span>
+  </div>
+  <div class="prog"><div class="prog-fill" id="prog-fill"></div></div>
+  <div class="sc-card" id="sc-card"><!-- injected --></div>
+</div>
+
+<!-- ======== RESULT ======== -->
+<div id="screen-result" class="screen">
+  <div class="res-header">
+    <div class="res-h">あなたの<em>不協和解消</em>パターン</div>
+    <div class="res-sub" id="res-sub">—</div>
+  </div>
+
+  <div class="pattern-list" id="pattern-list"></div>
+
+  <div class="explain-box">
+    <h3>🧠 認知的不協和（Cognitive Dissonance）とは</h3>
+    <p>レオン・フェスティンガー（1957）が提唱した理論です。<strong>互いに矛盾する2つの認知（考え・信念・行動）</strong>が同時に存在すると、人は不快な緊張状態（不協和）を感じます。</p>
+    <p>この緊張を和らげるために、人は3つの方法のどれかをとります。①<strong>行動を変える</strong>（タバコをやめる）、②<strong>認知を変える</strong>（「タバコは太らないから健康に良い面もある」）、③<strong>新しい認知を追加する</strong>（「ストレスの方が体に悪い」）。</p>
+    <p>面白いことに、<strong>多くの人は行動を変えるより認知を変える</strong>方を選びます。行動を変えることは難しく、考え方を変える方がずっと楽だからです。これが「自己正当化」の心理的メカニズムです。</p>
+  </div>
+
+  <div>
+    <div style="font-family:'Space Mono',monospace;font-size:.68rem;letter-spacing:.15em;color:var(--muted);text-transform:uppercase;margin-bottom:.6rem">不協和の解消方法</div>
+    <div class="reduction-grid">
+      <div class="r-item">
+        <div class="r-icon">✅</div>
+        <div class="r-title" style="color:var(--green)">行動を変える</div>
+        <div class="r-body">矛盾の原因となった行動をやめる・変える。最も根本的な解決法だが、習慣や利益が絡むと難しい。</div>
+      </div>
+      <div class="r-item">
+        <div class="r-icon">🔄</div>
+        <div class="r-title" style="color:var(--teal)">認知を変える</div>
+        <div class="r-body">矛盾する信念の一方を書き換える。「あの失敗には意味があった」など。最もよく使われる。</div>
+      </div>
+      <div class="r-item">
+        <div class="r-icon">➕</div>
+        <div class="r-title" style="color:var(--amber)">新しい認知を追加</div>
+        <div class="r-body">「でも〜だから大丈夫」という理由を足す。矛盾を覆い隠すことで緊張を緩める。</div>
+      </div>
+      <div class="r-item">
+        <div class="r-icon">🙈</div>
+        <div class="r-title" style="color:var(--muted)">矛盾を無視する</div>
+        <div class="r-body">不快な認知から目を背ける。意識的・無意識的に矛盾に気づかないようにする。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="discuss-box">
+    <h3>💬 考えてみよう</h3>
+    <div class="dq"><span>🤔</span><span>「認知を変える」のは悪いことだけではない？ 前向きな自己正当化が役立つ場面を考えよう。</span></div>
+    <div class="dq"><span>🔍</span><span>「あの大学に落ちたけどご縁がなかっただけ」「あの人は合わなかっただけ」——これも認知的不協和の解消？</span></div>
+    <div class="dq"><span>🌍</span><span>環境問題を「知っているのに行動しない」のはなぜ？ 不協和をどう解消しているかを考えてみよう。</span></div>
+    <div class="dq"><span>💡</span><span>フェスティンガーの実験では、つまらない作業をした人が「楽しかった」と言い張った。なぜ？（ヒント：報酬の大きさ）</span></div>
+  </div>
+
+  <button class="btn-retry" onclick="resetAll()">もう一度やってみる</button>
+</div>
+
+<script>
+// ===== SCENARIOS =====
+// dissonanceType: どの種類の不協和か
+// resolveType: どの解消方法を示しているか（result表示用）
+const SCENARIOS = [
+  {
+    badge: '行動 vs 信念',
+    badgeCol: '#DC2626',
+    tension: 85,
+    context: '🚬 タバコと健康の矛盾',
+    q: 'あなたはタバコを吸っています。しかし「タバコは健康に悪い」と知っています。この矛盾をどう解消しますか？',
+    choices: [
+      { key:'A', text:'禁煙する（行動を変える）',                                   resolve:'behavior' },
+      { key:'B', text:'「吸う量が少ないから大丈夫」と考える（認知を変える）',       resolve:'cognition' },
+      { key:'C', text:'「ストレスの方が体に悪いから、タバコでリラックスした方がいい」と考える（新しい認知を追加）', resolve:'add' },
+      { key:'D', text:'健康情報を見ないようにする（無視する）',                     resolve:'ignore' },
+    ],
+    pattern: 'health',
+  },
+  {
+    badge: '努力 vs 結果',
+    badgeCol: '#7C3AED',
+    tension: 70,
+    context: '🎓 志望校に不合格になった場面',
+    q: '一生懸命勉強したのに、第一志望の大学に落ちてしまいました。あなたはどう感じ、どう考えますか？',
+    choices: [
+      { key:'A', text:'「自分の努力が足りなかった。次こそ頑張ろう」と素直に受け入れる',           resolve:'behavior' },
+      { key:'B', text:'「あの大学は自分に合っていなかったから、ご縁がなかっただけ」と考える',      resolve:'cognition' },
+      { key:'C', text:'「落ちた大学より今の大学の方が実は自分に向いているはず」と思い直す',       resolve:'add' },
+      { key:'D', text:'試験のことを考えないようにして、気持ちを切り替える',                       resolve:'ignore' },
+    ],
+    pattern: 'effort',
+  },
+  {
+    badge: '衝動 vs 節約',
+    badgeCol: '#D97706',
+    tension: 60,
+    context: '🛒 衝動買いをしてしまった場面',
+    q: '「節約しよう」と決めていたのに、高いブランド品を衝動買いしてしまいました。どう思いますか？',
+    choices: [
+      { key:'A', text:'素直に反省して、返品または今月は他の出費を削る',                         resolve:'behavior' },
+      { key:'B', text:'「これは長く使えるから、長期的にはコスパが良い投資だ」と考える',          resolve:'add' },
+      { key:'C', text:'「たまには自分へのご褒美も大切」と思って気にしない',                      resolve:'cognition' },
+      { key:'D', text:'レシートをすぐ捨てて、購入したことを忘れようとする',                      resolve:'ignore' },
+    ],
+    pattern: 'purchase',
+  },
+  {
+    badge: '知識 vs 行動',
+    badgeCol: '#0D9488',
+    tension: 75,
+    context: '🌍 環境問題と自分の行動',
+    q: '気候変動の深刻さを知っているのに、毎日車で通勤し、肉をよく食べています。この矛盾をどう考えますか？',
+    choices: [
+      { key:'A', text:'できることから変える：週に数回は電車にして、肉の量を減らす',              resolve:'behavior' },
+      { key:'B', text:'「個人の行動より企業や政府の政策の方がずっと大事」と考える',             resolve:'cognition' },
+      { key:'C', text:'「自分だけ我慢しても世界全体から見たら焼け石に水」と思う',               resolve:'add' },
+      { key:'D', text:'環境問題のニュースをあまり見ないようにする',                             resolve:'ignore' },
+    ],
+    pattern: 'environment',
+  },
+  {
+    badge: '行動 vs 自己イメージ',
+    badgeCol: '#2563EB',
+    tension: 65,
+    context: '😅 フェスティンガーの有名な実験',
+    q: '非常につまらない単純作業（ボタンを並べる）を1時間やりました。終わった後、次の参加者に「楽しい実験です」と言うよう頼まれました。どうなると思いますか？',
+    choices: [
+      { key:'A', text:'嘘をついた罪悪感から「やはりつまらなかった」とより強く感じる',            resolve:'behavior' },
+      { key:'B', text:'嘘をついた後、「意外と楽しい部分もあったかも」と感じ始める',              resolve:'cognition' },
+      { key:'C', text:'報酬が大きければ大きいほど「自分は正直に話せた」と感じる',                resolve:'add' },
+      { key:'D', text:'報酬が少ないほど「楽しかった」と思い込むようになる（正解！）',            resolve:'insight' },
+    ],
+    pattern: 'festinger',
+    correctIdx: 3,
+  },
+  {
+    badge: '苦労 vs 価値',
+    badgeCol: '#16A34A',
+    tension: 80,
+    context: '💉 入会が大変だったサークルの場面',
+    q: '入るために厳しい試験と3ヶ月の訓練をこなしてやっと入会したサークル。活動してみたら正直あまり面白くありませんでした。どう感じますか？',
+    choices: [
+      { key:'A', text:'「入るのは大変だったけど、あまり合わなかった。そのうち退会しよう」と素直に思う', resolve:'behavior' },
+      { key:'B', text:'「あれだけ頑張って入ったんだから、きっと良さがあるはず」と良い面を探す',      resolve:'cognition' },
+      { key:'C', text:'「あの試験と訓練自体が良い経験になった。サークル活動は二の次」と考える',        resolve:'add' },
+      { key:'D', text:'「あれほど苦労したんだから、絶対に価値があるはず」と思い込んでしまう（努力の正当化）', resolve:'insight' },
+    ],
+    pattern: 'effort_justification',
+    correctIdx: 3,
+  },
+];
+
+// ===== PATTERN INFO =====
+const PATTERNS = {
+  behavior: { icon:'✅', title:'行動変容型', desc:'矛盾の根本を解決しようとする。最も健全な解消法だが、実際には選ばれにくい。', col:'#16A34A' },
+  cognition: { icon:'🔄', title:'認知変容型（合理化）', desc:'「考え方を変えて」矛盾を解消しようとする。最もよく見られるパターン。自己正当化の典型。', col:'#0D9488' },
+  add:       { icon:'➕', title:'認知追加型（言い訳）', desc:'「でも〜だから」という新しい理由を足して矛盾を覆い隠す。現実をある程度受け入れつつ正当化。', col:'#D97706' },
+  ignore:    { icon:'🙈', title:'回避・無視型', desc:'不快な情報から目を背ける。短期的には楽だが、矛盾の根本は残る。', col:'#A1A1AA' },
+  insight:   { icon:'🎯', title:'心理学的洞察', desc:'認知的不協和の仕組みを正しく理解している！フェスティンガーの研究の核心部分。', col:'#7C3AED' },
+};
+
+// ===== STATE =====
+let scIdx = 0;
+let answers = [];
+
+// ===== RENDER =====
+function renderScenario() {
+  const s = SCENARIOS[scIdx];
+  const badge = document.getElementById('sc-badge');
+  badge.textContent = s.badge;
+  badge.style.background = s.badgeCol + '18';
+  badge.style.color = s.badgeCol;
+  badge.style.border = `1px solid ${s.badgeCol}44`;
+
+  document.getElementById('sc-num').textContent = `シナリオ ${scIdx+1} / ${SCENARIOS.length}`;
+  document.getElementById('prog-fill').style.width = (scIdx / SCENARIOS.length * 100) + '%';
+
+  const card = document.getElementById('sc-card');
+  card.style.animation = 'none'; void card.offsetWidth; card.style.animation = '';
+
+  card.innerHTML = `
+    <div class="sc-top">
+      <div class="sc-context">${s.context}</div>
+      <div class="sc-text">${s.q}</div>
+    </div>
+    <div class="tension-wrap">
+      <div class="tension-label">
+        <span>不協和の強さ</span>
+        <span id="tension-val" style="color:${s.badgeCol};font-weight:700">${s.tension}%</span>
+      </div>
+      <div class="tension-bar">
+        <div class="tension-fill" id="tension-fill" style="width:0%"></div>
+      </div>
+    </div>
+    <div class="sc-choices">
+      ${s.choices.map((c,i) => `
+        <button class="choice-btn" id="cb-${i}" onclick="pickChoice(${i})">
+          <span class="c-key">${c.key}</span>
+          <span>${c.text}</span>
+        </button>
+      `).join('')}
+    </div>
+  `;
+
+  // Animate tension bar
+  setTimeout(() => {
+    document.getElementById('tension-fill').style.width = s.tension + '%';
+  }, 150);
+}
+
+function pickChoice(idx) {
+  const s = SCENARIOS[scIdx];
+  const chosen = s.choices[idx];
+  answers.push({ scenario: s, choiceIdx: idx, resolve: chosen.resolve, pattern: s.pattern });
+
+  document.getElementById(`cb-${idx}`).classList.add('chosen');
+  document.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+
+  setTimeout(() => {
+    scIdx++;
+    if (scIdx >= SCENARIOS.length) showResults();
+    else renderScenario();
+  }, 380);
+}
+
+// ===== RESULTS =====
+function showResults() {
+  // Count resolve types
+  const counts = {};
+  answers.forEach(a => { counts[a.resolve] = (counts[a.resolve]||0)+1; });
+  const dominant = Object.entries(counts).sort((a,b) => b[1]-a[1])[0][0];
+
+  const descMap = {
+    behavior: '行動を変えることで矛盾を解消しようとする傾向が見られました。根本解決志向ですが、現実では難しい場面も多いです。',
+    cognition:'考え方を変えることで矛盾を和らげる傾向が見られました。これが「自己正当化」の典型的パターンです。',
+    add:      '新しい理由を追加することで矛盾を和らげる傾向が見られました。合理化が得意なタイプかもしれません。',
+    ignore:   '矛盾から目を背けることで緊張を回避しようとする傾向が見られました。回避は一時的な解消にしかなりません。',
+    insight:  '認知的不協和の仕組みを深く理解しているようです！',
+  };
+  document.getElementById('res-sub').textContent = descMap[dominant] || '結果を集計しました。';
+
+  // Pattern items
+  const list = document.getElementById('pattern-list');
+  list.innerHTML = '';
+  const shown = new Set();
+  answers.forEach(a => {
+    const key = a.resolve;
+    if (shown.has(key)) return;
+    shown.add(key);
+    const p = PATTERNS[key];
+    if (!p) return;
+    const isYours = answers.some(x => x.resolve === key);
+    const div = document.createElement('div');
+    div.className = 'pattern-item';
+    div.innerHTML = `
+      <div class="p-icon">${p.icon}</div>
+      <div class="p-body">
+        <div class="p-title" style="color:${p.col}">${p.title}</div>
+        <div class="p-desc">${p.desc}</div>
+        <div class="p-you" style="color:${p.col}">→ ${counts[key]}回 選択しました</div>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+
+  showScreen('screen-result');
+}
+
+// ===== HELPERS =====
+function startScenarios() {
+  scIdx = 0; answers = [];
+  renderScenario();
+  showScreen('screen-scenario');
+}
+function resetAll() { showScreen('screen-intro'); }
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => { s.classList.remove('active'); s.style.display='none'; });
+  const el = document.getElementById(id);
+  el.classList.add('active'); el.style.display='flex';
+  window.scrollTo(0,0);
+}
+
+document.querySelectorAll('.screen').forEach(s => { s.style.display='none'; });
+document.getElementById('screen-intro').style.display='flex';
+document.getElementById('screen-intro').classList.add('active');
+</script>
+</body>
+</html>
