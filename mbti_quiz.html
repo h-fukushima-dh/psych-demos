@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>パーソナリティ簡易診断 — 心理学的に考えてみよう</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700;900&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  --bg:      #FAFAF8;
+  --ink:     #1C1C28;
+  --surface: #F0EFE8;
+  --card:    #FFFFFF;
+  --border:  #E0DFDA;
+  --muted:   #9090A0;
+  --e:  #E8543A; /* Extraversion  */
+  --i:  #3A6AE8; /* Introversion  */
+  --s:  #2AAA6A; /* Sensing       */
+  --n:  #9B4AC8; /* iNtuition     */
+  --t:  #C87A10; /* Thinking      */
+  --f:  #D83878; /* Feeling       */
+  --j:  #1A9AA8; /* Judging       */
+  --p:  #8A7A10; /* Perceiving    */
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans JP', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.screen { display: none; }
+.screen.active { display: flex; flex-direction: column; align-items: center; }
+
+/* ======= INTRO ======= */
+#screen-intro {
+  min-height: 100vh;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  gap: 1.6rem;
+}
+
+.intro-tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  color: var(--muted);
+  text-transform: uppercase;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 0.3rem 1rem;
+  display: inline-block;
+  opacity: 0; animation: up 0.5s 0.1s forwards;
+}
+
+.intro-h1 {
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  font-weight: 900;
+  line-height: 1.2;
+  opacity: 0; animation: up 0.5s 0.22s forwards;
+}
+.intro-h1 em { font-style: normal; color: var(--e); }
+
+.intro-p {
+  max-width: 460px;
+  font-size: 0.95rem;
+  line-height: 2;
+  color: var(--muted);
+  font-weight: 300;
+  opacity: 0; animation: up 0.5s 0.35s forwards;
+}
+
+/* 4 axis preview */
+.axes-preview {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 420px;
+  opacity: 0; animation: up 0.5s 0.48s forwards;
+}
+.axis-chip {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.notice-box {
+  background: #FFF8E8;
+  border: 1.5px solid #E8C860;
+  border-radius: 10px;
+  padding: 0.9rem 1.2rem;
+  max-width: 420px;
+  font-size: 0.82rem;
+  color: #8A6010;
+  line-height: 1.8;
+  font-weight: 400;
+  opacity: 0; animation: up 0.5s 0.58s forwards;
+}
+
+.btn-start {
+  background: var(--ink);
+  color: #fff;
+  border: none;
+  padding: 1.1rem 3rem;
+  font-size: 1rem;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 700;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  opacity: 0; animation: up 0.5s 0.68s forwards;
+}
+.btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(28,28,40,0.18); }
+
+/* ======= QUIZ ======= */
+#screen-quiz {
+  min-height: 100vh;
+  padding: 1.5rem 1.2rem 2.5rem;
+  gap: 1.2rem;
+  max-width: 580px;
+  margin: 0 auto;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.quiz-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.quiz-qnum {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+.quiz-axis-badge {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  padding: 0.22rem 0.7rem;
+  border-radius: 20px;
+  font-weight: 700;
+}
+
+.quiz-progress {
+  width: 100%;
+  height: 5px;
+  background: var(--surface);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.quiz-progress-fill {
+  height: 100%;
+  background: var(--ink);
+  border-radius: 3px;
+  transition: width 0.35s ease;
+  width: 0%;
+}
+
+.question-card {
+  width: 100%;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  padding: 2rem 1.5rem 1.5rem;
+  box-shadow: 0 4px 18px rgba(28,28,40,0.06);
+}
+
+.question-scene {
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-weight: 300;
+  margin-bottom: 0.8rem;
+  line-height: 1.6;
+}
+.question-text {
+  font-size: clamp(1rem, 3vw, 1.2rem);
+  font-weight: 700;
+  line-height: 1.65;
+  margin-bottom: 1.5rem;
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.choice-btn {
+  width: 100%;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  font-size: 0.95rem;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 400;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  line-height: 1.6;
+  transition: border-color 0.18s, background 0.18s, transform 0.1s;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+}
+.choice-btn:hover:not(:disabled) {
+  border-color: var(--ink);
+  background: var(--card);
+  transform: translateX(3px);
+}
+.choice-btn.chosen {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+  transform: translateX(4px);
+}
+.choice-letter {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  min-width: 1.4rem;
+  padding-top: 0.1rem;
+  opacity: 0.55;
+}
+.choice-btn.chosen .choice-letter { opacity: 0.75; }
+
+/* ======= RESULT ======= */
+#screen-result {
+  min-height: 100vh;
+  padding: 2rem 1.2rem 3rem;
+  gap: 1.5rem;
+  max-width: 620px;
+  margin: 0 auto;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.result-header { text-align: center; width: 100%; }
+.result-type-code {
+  font-family: 'Space Mono', monospace;
+  font-size: clamp(2.5rem, 8vw, 4rem);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.3rem;
+}
+.result-type-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+}
+.result-type-desc {
+  font-size: 0.9rem;
+  color: var(--muted);
+  font-weight: 300;
+  line-height: 1.8;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* Axis bars */
+.axis-bars {
+  width: 100%;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 1.3rem 1.4rem;
+  box-shadow: 0 4px 18px rgba(28,28,40,0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.axis-bar-row { width: 100%; }
+.axis-bar-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+}
+.axis-bar-outer {
+  height: 18px;
+  background: var(--surface);
+  border-radius: 9px;
+  overflow: hidden;
+  position: relative;
+}
+.axis-bar-fill {
+  height: 100%;
+  border-radius: 9px;
+  transition: width 1s cubic-bezier(0.4,0,0.2,1);
+  width: 0%;
+  position: absolute;
+}
+.fill-left  { left: 0; }
+.fill-right { right: 0; }
+.axis-bar-center {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--border);
+  transform: translateX(-50%);
+}
+.axis-score {
+  text-align: center;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
+/* Warning box */
+.warning-box {
+  width: 100%;
+  background: #FFF8E8;
+  border: 1.5px solid #E8C860;
+  border-radius: 14px;
+  padding: 1.2rem 1.4rem;
+}
+.warning-box h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.7rem; color: #8A6010; }
+.warning-box ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.warning-box li {
+  font-size: 0.85rem;
+  color: #8A6010;
+  line-height: 1.7;
+  padding-left: 1.2rem;
+  position: relative;
+  font-weight: 300;
+}
+.warning-box li::before { content: '⚠'; position: absolute; left: 0; font-size: 0.8rem; }
+
+/* Science compare */
+.science-box {
+  width: 100%;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 1.2rem 1.4rem;
+  box-shadow: 0 4px 18px rgba(28,28,40,0.06);
+}
+.science-box h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.8rem; }
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+.compare-item {
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 0.8rem;
+}
+.compare-label { font-size: 0.75rem; font-weight: 700; margin-bottom: 0.3rem; }
+.compare-body { font-size: 0.75rem; color: var(--muted); line-height: 1.6; font-weight: 300; }
+
+.reflection-box {
+  width: 100%;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 1.2rem 1.4rem;
+}
+.reflection-box h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.8rem; }
+.reflection-qs { display: flex; flex-direction: column; gap: 0.55rem; }
+.reflection-q {
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+}
+.rq-icon { font-size: 1rem; flex-shrink: 0; }
+
+.btn-retry {
+  width: 100%;
+  background: var(--ink);
+  color: #fff;
+  border: none;
+  padding: 1rem;
+  font-size: 0.95rem;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 700;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.btn-retry:hover { opacity: 0.85; transform: translateY(-1px); }
+
+@keyframes up {
+  from { opacity:0; transform:translateY(14px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes cardIn {
+  from { opacity:0; transform:translateY(10px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.question-card { animation: cardIn 0.25s forwards; }
+</style>
+</head>
+<body>
+
+<!-- ======= INTRO ======= -->
+<div id="screen-intro" class="screen active">
+  <span class="intro-tag">パーソナリティ心理学 ／ 簡易体験</span>
+  <h1 class="intro-h1">あなたは<em>どんな</em><br>タイプ？</h1>
+  <p class="intro-p">
+    20の質問に答えて、MBTIをベースにした簡易パーソナリティ診断を体験してみましょう。<br>
+    ただし、これはあくまで「入口」です。
+  </p>
+
+  <div class="axes-preview">
+    <div class="axis-chip"><span style="color:var(--e)">E</span> / <span style="color:var(--i)">I</span> エネルギー</div>
+    <div class="axis-chip"><span style="color:var(--s)">S</span> / <span style="color:var(--n)">N</span> 情報処理</div>
+    <div class="axis-chip"><span style="color:var(--t)">T</span> / <span style="color:var(--f)">F</span> 判断基準</div>
+    <div class="axis-chip"><span style="color:var(--j)">J</span> / <span style="color:var(--p)">P</span> 生活スタイル</div>
+  </div>
+
+  <div class="notice-box">
+    ⚠️ この診断は教育目的の簡易版です。MBTIには科学的な問題点もあります。結果後に心理学的な解説があります。
+  </div>
+
+  <button class="btn-start" onclick="startQuiz()">診断スタート（全20問）→</button>
+</div>
+
+<!-- ======= QUIZ ======= -->
+<div id="screen-quiz" class="screen">
+  <div class="quiz-header">
+    <span class="quiz-qnum" id="quiz-qnum">Q1 / 20</span>
+    <span class="quiz-axis-badge" id="quiz-axis-badge"></span>
+  </div>
+  <div class="quiz-progress">
+    <div class="quiz-progress-fill" id="quiz-progress-fill"></div>
+  </div>
+  <div class="question-card" id="question-card">
+    <!-- injected -->
+  </div>
+</div>
+
+<!-- ======= RESULT ======= -->
+<div id="screen-result" class="screen">
+  <div class="result-header">
+    <div class="result-type-code" id="result-code">INFP</div>
+    <div class="result-type-name" id="result-name">—</div>
+    <div class="result-type-desc" id="result-desc">—</div>
+  </div>
+
+  <div class="axis-bars" id="axis-bars"></div>
+
+  <div class="warning-box">
+    <h3>⚠️ MBTIについて知っておくべきこと</h3>
+    <ul>
+      <li><strong>再検査信頼性が低い：</strong> 数週間後に同じ人がやると約50%が別のタイプになる（Myers-Briggs Foundation自身のデータ）</li>
+      <li><strong>カテゴリ分割の問題：</strong> 人の性格は連続的な分布なのに、「白か黒か」に二分している</li>
+      <li><strong>バーナム効果の影響：</strong> 曖昧で一般的な記述でも「自分のことだ」と感じやすい</li>
+      <li><strong>科学的妥当性が低い：</strong> ビッグファイブなど実証研究に基づいた指標と比べて予測妥当性が劣る</li>
+      <li><strong>でも…：</strong> 自己理解の「入口」や会話のきっかけとしては使える。「型にはめる」ためではなく「考えるきっかけ」として。</li>
+    </ul>
+  </div>
+
+  <div class="science-box">
+    <h3>🔬 科学的パーソナリティ理論：ビッグファイブとの比較</h3>
+    <div class="compare-grid">
+      <div class="compare-item">
+        <div class="compare-label" style="color:var(--e)">MBTI</div>
+        <div class="compare-body">4軸・16タイプに二分分類。直感的でわかりやすいが、再現性・予測妥当性に課題がある。</div>
+      </div>
+      <div class="compare-item">
+        <div class="compare-label" style="color:var(--s)">ビッグファイブ（OCEAN）</div>
+        <div class="compare-body">5因子を連続尺度で測定。開放性・誠実性・外向性・協調性・神経症傾向。信頼性・妥当性が高く、研究で広く使われる。</div>
+      </div>
+      <div class="compare-item">
+        <div class="compare-label" style="color:var(--n)">バーナム効果</div>
+        <div class="compare-body">「あなたは時々外向的で、時々内向的」のような曖昧な記述を「当たっている」と感じる現象。</div>
+      </div>
+      <div class="compare-item">
+        <div class="compare-label" style="color:var(--j)">予測妥当性</div>
+        <div class="compare-body">ビッグファイブは職場のパフォーマンスや学業成績をある程度予測できる。MBTIは予測力が低い。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="reflection-box">
+    <h3>💬 考えてみよう</h3>
+    <div class="reflection-qs">
+      <div class="reflection-q">
+        <span class="rq-icon">🤔</span>
+        <span>結果を見て「当たってる！」と感じましたか？ それはバーナム効果かもしれません。なぜそう感じたか考えてみましょう。</span>
+      </div>
+      <div class="reflection-q">
+        <span class="rq-icon">🔄</span>
+        <span>「外向的 or 内向的」は本当に二択でしょうか？ あなたは状況によって変わりませんか？</span>
+      </div>
+      <div class="reflection-q">
+        <span class="rq-icon">🧪</span>
+        <span>科学的に「良い心理検査」の条件とは何でしょう？（信頼性・妥当性・標準化）</span>
+      </div>
+      <div class="reflection-q">
+        <span class="rq-icon">💼</span>
+        <span>MBTIを採用に使う企業があります。それは適切だと思いますか？ 根拠を考えてみましょう。</span>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-retry" onclick="resetAll()">もう一度やってみる</button>
+</div>
+
+<script>
+// ===== QUESTIONS =====
+// axis: EI, SN, TF, JP
+// aScore: Aを選ぶと左側（E/S/T/J）にスコア加算
+const QUESTIONS = [
+  // --- EI axis (外向 vs 内向) ---
+  {
+    axis: 'EI', aDir: 'E',
+    scene: '週末の過ごし方について',
+    q: '理想の週末はどちらに近いですか？',
+    a: '友達をたくさん誘って、にぎやかに過ごしたい',
+    b: '一人か少人数で、静かにゆっくり過ごしたい',
+  },
+  {
+    axis: 'EI', aDir: 'E',
+    scene: '初対面の場面で',
+    q: '知らない人がたくさんいるパーティー。あなたはどうしますか？',
+    a: 'どんどん話しかけて、新しい友達を作る',
+    b: '知り合いと話すか、少し様子を見ながら過ごす',
+  },
+  {
+    axis: 'EI', aDir: 'E',
+    scene: 'エネルギーの補充方法',
+    q: '疲れたとき、どうすると元気になりますか？',
+    a: '友達と話したり遊んだりすると回復する',
+    b: '一人でいたり、好きなことをすると回復する',
+  },
+  {
+    axis: 'EI', aDir: 'E',
+    scene: '考え方のスタイル',
+    q: 'アイデアが浮かんだとき、どうしますか？',
+    a: 'すぐ誰かに話して、話しながら考えをまとめる',
+    b: '自分の中でよく考えてから、まとまったら話す',
+  },
+  {
+    axis: 'EI', aDir: 'E',
+    scene: '授業やミーティングで',
+    q: 'グループで話し合うとき、あなたは？',
+    a: '積極的に発言して、場を引っ張ることが多い',
+    b: '人の話をよく聞いて、ここぞというときに発言する',
+  },
+
+  // --- SN axis (現実的 vs 直感的) ---
+  {
+    axis: 'SN', aDir: 'S',
+    scene: '情報の受け取り方',
+    q: '何かを学ぶとき、どちらが好きですか？',
+    a: '具体的な事実やデータ、実際の例から学びたい',
+    b: '全体像や概念、可能性・アイデアから学びたい',
+  },
+  {
+    axis: 'SN', aDir: 'S',
+    scene: '旅行の計画',
+    q: '旅行の計画を立てるとき、どちらに近い？',
+    a: '日程・場所・交通を細かく決めてから動く',
+    b: '大まかな方向だけ決めて、行き当たりばったりも楽しむ',
+  },
+  {
+    axis: 'SN', aDir: 'S',
+    scene: '好きな話題',
+    q: '会話で盛り上がるのはどちらですか？',
+    a: '実際に起きたこと、具体的な体験談',
+    b: '「もしも〜だったら？」という仮定の話や将来の可能性',
+  },
+  {
+    axis: 'SN', aDir: 'S',
+    scene: '問題解決のスタイル',
+    q: '問題が起きたとき、どちらのアプローチ？',
+    a: '過去の経験や実績をもとに、確実な方法を選ぶ',
+    b: '新しいやり方や独自のアイデアを試したくなる',
+  },
+  {
+    axis: 'SN', aDir: 'S',
+    scene: '本や映画の好み',
+    q: '好きなジャンルはどちらに近いですか？',
+    a: 'ノンフィクション・実話・リアルな物語',
+    b: 'SF・ファンタジー・深いテーマを持つ作品',
+  },
+
+  // --- TF axis (論理的 vs 感情的) ---
+  {
+    axis: 'TF', aDir: 'T',
+    scene: '友達が相談してきた場面',
+    q: '友達が悩みを打ち明けてきたとき、まずどうしますか？',
+    a: '状況を整理して、論理的な解決策を提案する',
+    b: '気持ちに寄り添い、「つらかったね」と共感する',
+  },
+  {
+    axis: 'TF', aDir: 'T',
+    scene: '意思決定のスタイル',
+    q: '大事な決断をするとき、何を重視しますか？',
+    a: 'データ・メリットデメリット・客観的な根拠',
+    b: '自分や周りの気持ち・価値観・関係への影響',
+  },
+  {
+    axis: 'TF', aDir: 'T',
+    scene: 'フィードバックを伝えるとき',
+    q: '友達の作品やアイデアにダメ出しが必要なとき？',
+    a: '正直に問題点を伝えた方が本人のためになると思う',
+    b: '傷つけないように言葉を選びながら、やんわり伝える',
+  },
+  {
+    axis: 'TF', aDir: 'T',
+    scene: '議論や討論で',
+    q: '意見が対立したとき、どちらが自分に近い？',
+    a: '論理や証拠で説得できれば関係がどうなっても構わない',
+    b: '正論より、お互いの気持ちが傷つかない落としどころを探す',
+  },
+  {
+    axis: 'TF', aDir: 'T',
+    scene: '映画を見た後',
+    q: '感動的な映画を見たとき、どちらに近い？',
+    a: 'ストーリーの矛盾や演出の仕掛けを考えてしまう',
+    b: 'キャラクターの感情に共感して涙が出ることがある',
+  },
+
+  // --- JP axis (計画的 vs 柔軟) ---
+  {
+    axis: 'JP', aDir: 'J',
+    scene: '提出物や締め切り',
+    q: '課題の締め切りに対して、どちらに近い？',
+    a: '早めに終わらせて、余裕を持っておきたい',
+    b: 'ギリギリになってから集中して一気にやる',
+  },
+  {
+    axis: 'JP', aDir: 'J',
+    scene: '日常の整理整頓',
+    q: '机や部屋の状態はどちらに近い？',
+    a: 'すっきり整理されていないと落ち着かない',
+    b: '自分なりのルールがあれば、多少散らかっていても問題ない',
+  },
+  {
+    axis: 'JP', aDir: 'J',
+    scene: '予定の変更',
+    q: '決まっていた予定が急に変わったとき？',
+    a: 'できれば避けてほしい。事前に決めておきたい',
+    b: '臨機応変に対応するのは嫌いじゃない',
+  },
+  {
+    axis: 'JP', aDir: 'J',
+    scene: 'プロジェクトの進め方',
+    q: 'グループの仕事を進めるとき、どちらのスタイル？',
+    a: '最初にしっかり計画・役割分担を決めてから動く',
+    b: 'まずやってみて、状況に合わせてその都度調整する',
+  },
+  {
+    axis: 'JP', aDir: 'J',
+    scene: '買い物のスタイル',
+    q: '買い物に行くとき、あなたはどちら？',
+    a: '買うものをリストアップしてから行く',
+    b: '気分で選んで、良いものがあればそれにする',
+  },
+];
+
+// ===== TYPE DATA =====
+const TYPES = {
+  ISTJ: { name: '管理者', desc: '責任感が強く、信頼性抜群。ルールと秩序を大切にする現実的な人。', col: '#2B5FC2' },
+  ISFJ: { name: '擁護者', desc: 'やさしく献身的。誰かのために動くことに喜びを見出す。', col: '#1E9E5E' },
+  INFJ: { name: '提唱者', desc: '深い洞察力を持ち、理想のために行動する稀有なタイプ。', col: '#9B4AC8' },
+  INTJ: { name: '建築家', desc: '戦略的な思考と強い意志で、長期的な目標に向かう。', col: '#1A9AA8' },
+  ISTP: { name: '巨匠', desc: '冷静な観察眼と実践的なスキルを持つ問題解決者。', col: '#C87A10' },
+  ISFP: { name: '冒険家', desc: '柔軟で感受性豊か。芸術や美しさに敏感な自由人。', col: '#D83878' },
+  INFP: { name: '仲介者', desc: '理想主義的で共感力が高い。内なる価値観を大切にする。', col: '#9B4AC8' },
+  INTP: { name: '論理家', desc: '知的好奇心旺盛で、理論と分析が得意な思想家。', col: '#1A9AA8' },
+  ESTP: { name: '起業家', desc: '行動力があり、リスクも楽しめる。場の空気を読むのが得意。', col: '#E8543A' },
+  ESFP: { name: 'エンターテイナー', desc: '社交的で明るく、その場を盛り上げるムードメーカー。', col: '#E8543A' },
+  ENFP: { name: '広報運動家', desc: '情熱的で創造的。新しいアイデアと人との繋がりを愛する。', col: '#D83878' },
+  ENTP: { name: '討論者', desc: '知的議論が大好き。固定観念を挑戦するのが好きなタイプ。', col: '#8A7A10' },
+  ESTJ: { name: '幹部', desc: '組織を率いる力があり、実用的で頼れるリーダー。', col: '#2B5FC2' },
+  ESFJ: { name: '領事', desc: '人の世話をすることに生き甲斐を感じる、社交的な調和者。', col: '#1E9E5E' },
+  ENFJ: { name: '主人公', desc: 'カリスマ的なリーダー。人を動かし、成長させる才能がある。', col: '#D83878' },
+  ENTJ: { name: '指揮官', desc: '生まれながらのリーダー。意思決定が速く、大きな目標を持つ。', col: '#1A9AA8' },
+};
+
+const AXIS_COLORS = { E:'#E8543A', I:'#3A6AE8', S:'#2AAA6A', N:'#9B4AC8', T:'#C87A10', F:'#D83878', J:'#1A9AA8', P:'#8A7A10' };
+const AXIS_LABELS = [
+  { left:'E 外向的', right:'I 内向的', axis:'EI' },
+  { left:'S 現実的', right:'N 直感的', axis:'SN' },
+  { left:'T 論理的', right:'F 感情的', axis:'TF' },
+  { left:'J 計画的', right:'P 柔軟的', axis:'JP' },
+];
+
+// ===== STATE =====
+let qIdx = 0;
+let scores = { E:0, I:0, S:0, N:0, T:0, F:0, J:0, P:0 };
+
+// ===== RENDER QUESTION =====
+function renderQuestion() {
+  const q = QUESTIONS[qIdx];
+  const axisLetter1 = q.axis[0];
+  const axisLetter2 = q.axis[1];
+
+  // Badge
+  const badge = document.getElementById('quiz-axis-badge');
+  badge.textContent = q.axis + ' 軸';
+  badge.style.background = AXIS_COLORS[axisLetter1] + '22';
+  badge.style.color = AXIS_COLORS[axisLetter1];
+  badge.style.border = '1px solid ' + AXIS_COLORS[axisLetter1] + '55';
+
+  document.getElementById('quiz-qnum').textContent = `Q${qIdx+1} / ${QUESTIONS.length}`;
+  document.getElementById('quiz-progress-fill').style.width = ((qIdx / QUESTIONS.length) * 100) + '%';
+
+  const card = document.getElementById('question-card');
+  card.style.animation = 'none';
+  void card.offsetWidth;
+  card.style.animation = '';
+
+  card.innerHTML = `
+    <div class="question-scene">📍 ${q.scene}</div>
+    <div class="question-text">${q.q}</div>
+    <div class="choices">
+      <button class="choice-btn" id="btn-a" onclick="answer('a')">
+        <span class="choice-letter">A</span>
+        <span>${q.a}</span>
+      </button>
+      <button class="choice-btn" id="btn-b" onclick="answer('b')">
+        <span class="choice-letter">B</span>
+        <span>${q.b}</span>
+      </button>
+    </div>
+  `;
+}
+
+function answer(choice) {
+  const q = QUESTIONS[qIdx];
+  const chosenDir = choice === 'a' ? q.aDir : (q.axis[1]); // B → 反対側
+
+  // Aなら aDir にスコア, Bなら axis の反対側に
+  const scoreDir = choice === 'a' ? q.aDir : q.axis.replace(q.aDir, '');
+  scores[scoreDir]++;
+
+  // Visual feedback
+  document.getElementById(`btn-${choice}`).classList.add('chosen');
+  document.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+
+  setTimeout(() => {
+    qIdx++;
+    if (qIdx >= QUESTIONS.length) {
+      showResults();
+    } else {
+      renderQuestion();
+    }
+  }, 350);
+}
+
+// ===== RESULTS =====
+function showResults() {
+  // Determine type code
+  const E = scores.E >= scores.I ? 'E' : 'I';
+  const S = scores.S >= scores.N ? 'S' : 'N';
+  const T = scores.T >= scores.F ? 'T' : 'F';
+  const J = scores.J >= scores.P ? 'J' : 'P';
+  const typeCode = E + S + T + J;
+  const typeData = TYPES[typeCode] || { name: '—', desc: '—', col: '#888' };
+
+  document.getElementById('result-code').textContent = typeCode;
+  document.getElementById('result-code').style.color = typeData.col;
+  document.getElementById('result-name').textContent = typeData.name;
+  document.getElementById('result-desc').textContent = typeData.desc;
+
+  // Axis bars
+  const total = QUESTIONS.length / 4; // 5 per axis
+  const axisScores = [
+    { left: scores.E, right: scores.I, leftLetter: 'E', rightLetter: 'I', leftCol: '#E8543A', rightCol: '#3A6AE8' },
+    { left: scores.S, right: scores.N, leftLetter: 'S', rightLetter: 'N', leftCol: '#2AAA6A', rightCol: '#9B4AC8' },
+    { left: scores.T, right: scores.F, leftLetter: 'T', rightLetter: 'F', leftCol: '#C87A10', rightCol: '#D83878' },
+    { left: scores.J, right: scores.P, leftLetter: 'J', rightLetter: 'P', leftCol: '#1A9AA8', rightCol: '#8A7A10' },
+  ];
+
+  const barsEl = document.getElementById('axis-bars');
+  barsEl.innerHTML = '<div style="font-family:Space Mono,monospace;font-size:0.68rem;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;margin-bottom:0.3rem">各軸のスコア</div>';
+
+  axisScores.forEach(ax => {
+    const leftPct = Math.round((ax.left / (ax.left + ax.right)) * 100);
+    const rightPct = 100 - leftPct;
+    const winner = ax.left >= ax.right ? ax.leftLetter : ax.rightLetter;
+
+    const row = document.createElement('div');
+    row.className = 'axis-bar-row';
+    row.innerHTML = `
+      <div class="axis-bar-labels">
+        <span style="color:${ax.leftCol}">${ax.leftLetter} ${leftPct}%</span>
+        <span style="color:${ax.rightCol}">${rightPct}% ${ax.rightLetter}</span>
+      </div>
+      <div class="axis-bar-outer">
+        <div class="axis-bar-fill fill-left" id="bar-left-${ax.leftLetter}"
+             style="background:${ax.leftCol}; width:0%"></div>
+        <div class="axis-bar-fill fill-right" id="bar-right-${ax.rightLetter}"
+             style="background:${ax.rightCol}; width:0%"></div>
+        <div class="axis-bar-center"></div>
+      </div>
+      <div class="axis-score">あなた: <strong>${winner}</strong> (${Math.max(leftPct, rightPct)}%)</div>
+    `;
+    barsEl.appendChild(row);
+  });
+
+  showScreen('screen-result');
+
+  // Animate bars
+  setTimeout(() => {
+    axisScores.forEach(ax => {
+      const leftPct  = Math.round((ax.left  / (ax.left + ax.right)) * 100);
+      const rightPct = 100 - leftPct;
+      const lEl = document.getElementById(`bar-left-${ax.leftLetter}`);
+      const rEl = document.getElementById(`bar-right-${ax.rightLetter}`);
+      if (lEl) lEl.style.width = leftPct + '%';
+      if (rEl) rEl.style.width = rightPct + '%';
+    });
+  }, 150);
+}
+
+// ===== HELPERS =====
+function startQuiz() {
+  qIdx = 0;
+  scores = { E:0, I:0, S:0, N:0, T:0, F:0, J:0, P:0 };
+  renderQuestion();
+  showScreen('screen-quiz');
+}
+
+function resetAll() { showScreen('screen-intro'); }
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = 'none';
+  });
+  const el = document.getElementById(id);
+  el.classList.add('active');
+  el.style.display = 'flex';
+  window.scrollTo(0, 0);
+}
+
+// Init
+document.querySelectorAll('.screen').forEach(s => { s.style.display = 'none'; });
+document.getElementById('screen-intro').style.display = 'flex';
+document.getElementById('screen-intro').classList.add('active');
+</script>
+</body>
+</html>
