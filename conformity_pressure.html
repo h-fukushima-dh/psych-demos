@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>同調圧力体験 — あなたは流される？</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@300;400;700;800&family=Inconsolata:wght@400;600&display=swap');
+
+:root {
+  --bg:      #FAFAF7;
+  --ink:     #1E1E2C;
+  --muted:   #9494A8;
+  --surface: #F0F0EA;
+  --card:    #FFFFFF;
+  --border:  #E2E2DA;
+  --red:     #E8433A;
+  --blue:    #3A7AE8;
+  --green:   #2DB56A;
+  --gold:    #E8A520;
+  --purple:  #7A3AE8;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.screen { display: none; }
+.screen.active { display: flex; flex-direction: column; align-items: center; }
+
+/* ======== INTRO ======== */
+#screen-intro {
+  min-height: 100vh;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  gap: 1.8rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Decorative blobs */
+#screen-intro::before {
+  content: '';
+  position: absolute;
+  top: -80px; right: -80px;
+  width: 320px; height: 320px;
+  background: radial-gradient(circle, rgba(232,67,58,0.10) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+#screen-intro::after {
+  content: '';
+  position: absolute;
+  bottom: -60px; left: -60px;
+  width: 260px; height: 260px;
+  background: radial-gradient(circle, rgba(58,122,232,0.10) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.tag {
+  display: inline-block;
+  font-family: 'Inconsolata', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 0.3rem 1rem;
+  opacity: 0;
+  animation: riseIn 0.5s 0.1s forwards;
+}
+
+.intro-h1 {
+  font-size: clamp(2.2rem, 7vw, 4rem);
+  font-weight: 800;
+  line-height: 1.15;
+  opacity: 0;
+  animation: riseIn 0.5s 0.25s forwards;
+}
+.intro-h1 .hi { color: var(--red); display: block; }
+
+.intro-p {
+  max-width: 480px;
+  font-size: 1rem;
+  line-height: 2;
+  color: var(--muted);
+  font-weight: 300;
+  opacity: 0;
+  animation: riseIn 0.5s 0.4s forwards;
+}
+
+.scenario-preview {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 500px;
+  opacity: 0;
+  animation: riseIn 0.5s 0.52s forwards;
+}
+.sp-chip {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.82rem;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-start {
+  background: var(--ink);
+  color: var(--bg);
+  border: none;
+  padding: 1.1rem 3rem;
+  font-size: 1rem;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  font-weight: 700;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  opacity: 0;
+  animation: riseIn 0.5s 0.65s forwards;
+}
+.btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(30,30,44,0.2); }
+
+/* ======== SCENARIO ======== */
+#screen-scenario {
+  min-height: 100vh;
+  padding: 1.5rem 1.2rem 2rem;
+  gap: 1.2rem;
+  max-width: 640px;
+  margin: 0 auto;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.scenario-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.round-badge {
+  font-family: 'Inconsolata', monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+.progress-dots {
+  display: flex;
+  gap: 0.35rem;
+}
+.dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background 0.3s;
+}
+.dot.done { background: var(--ink); }
+.dot.active { background: var(--red); }
+
+/* Pressure meter */
+.pressure-wrap { width: 100%; }
+.pressure-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 0.3rem;
+}
+.pressure-bar {
+  height: 6px;
+  background: var(--surface);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.pressure-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold), var(--red));
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 0%;
+}
+
+/* Scene card */
+.scene-card {
+  width: 100%;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(30,30,44,0.07);
+}
+
+.scene-situation {
+  background: var(--ink);
+  color: var(--bg);
+  padding: 1rem 1.4rem;
+  font-size: 0.8rem;
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  line-height: 1.8;
+}
+.scene-situation strong { color: var(--gold); font-weight: 700; }
+
+.scene-body {
+  padding: 1.4rem;
+}
+.scene-question {
+  font-size: clamp(1rem, 3vw, 1.2rem);
+  font-weight: 700;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+/* Crowd votes */
+.crowd-box {
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1.2rem;
+}
+.crowd-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 0.6rem;
+  font-family: 'Inconsolata', monospace;
+  letter-spacing: 0.1em;
+}
+.crowd-votes { display: flex; flex-direction: column; gap: 0.5rem; }
+.crowd-vote-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.88rem;
+}
+.crowd-avatars {
+  display: flex;
+  gap: 2px;
+}
+.avatar {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+}
+.av-agree { background: #FFE4E4; }
+.av-other { background: var(--surface); }
+
+.crowd-option { flex: 1; font-weight: 700; }
+.crowd-pct {
+  font-family: 'Inconsolata', monospace;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.crowd-bar-mini {
+  width: 80px;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.crowd-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.8s ease;
+  width: 0%;
+}
+.fill-majority { background: var(--red); }
+.fill-minority { background: var(--blue); }
+
+/* Choice buttons */
+.choices { display: flex; flex-direction: column; gap: 0.6rem; }
+.choice-btn {
+  width: 100%;
+  background: var(--bg);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  font-size: 0.95rem;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.18s, background 0.18s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.choice-btn:hover:not(:disabled) { border-color: var(--ink); transform: translateX(3px); }
+.choice-btn.selected-conform {
+  border-color: var(--red);
+  background: #FFF4F4;
+  color: var(--red);
+}
+.choice-btn.selected-resist {
+  border-color: var(--blue);
+  background: #F4F8FF;
+  color: var(--blue);
+}
+.choice-icon { font-size: 1.2rem; }
+
+/* ======== RESULTS ======== */
+#screen-result {
+  min-height: 100vh;
+  padding: 2rem 1.2rem;
+  gap: 1.5rem;
+  max-width: 640px;
+  margin: 0 auto;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.result-header { text-align: center; width: 100%; }
+.result-h { font-size: clamp(1.6rem, 5vw, 2.4rem); font-weight: 800; line-height: 1.2; margin-bottom: 0.4rem; }
+.result-h .num { color: var(--red); }
+.result-sub { font-size: 0.95rem; color: var(--muted); font-weight: 300; }
+
+/* Score card */
+.score-card {
+  width: 100%;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  padding: 1.4rem;
+  box-shadow: 0 4px 20px rgba(30,30,44,0.07);
+}
+.score-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.score-box {
+  flex: 1;
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
+}
+.score-num {
+  font-family: 'Inconsolata', monospace;
+  font-size: 2.2rem;
+  font-weight: 600;
+  display: block;
+}
+.score-lbl { font-size: 0.78rem; color: var(--muted); margin-top: 0.2rem; }
+
+/* Timeline */
+.timeline { width: 100%; display: flex; flex-direction: column; gap: 0.6rem; }
+.tl-item {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 0.9rem 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.tl-num {
+  font-family: 'Inconsolata', monospace;
+  font-size: 0.75rem;
+  color: var(--muted);
+  width: 1.8rem;
+  flex-shrink: 0;
+}
+.tl-q { font-size: 0.85rem; flex: 1; color: var(--ink); font-weight: 700; }
+.tl-badge {
+  font-size: 0.72rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.badge-conform { background: #FFE4E4; color: var(--red); }
+.badge-resist  { background: #E4EEFF; color: var(--blue); }
+.tl-pressure {
+  font-family: 'Inconsolata', monospace;
+  font-size: 0.72rem;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+/* Explain */
+.explain-box {
+  width: 100%;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  padding: 1.4rem;
+  box-shadow: 0 4px 20px rgba(30,30,44,0.07);
+}
+.explain-box h3 { font-size: 1rem; font-weight: 800; margin-bottom: 0.8rem; }
+.explain-box p { font-size: 0.88rem; color: var(--muted); line-height: 1.9; margin-bottom: 0.6rem; font-weight: 300; }
+.explain-box p:last-child { margin-bottom: 0; }
+.explain-box strong { color: var(--ink); font-weight: 700; }
+
+/* Factors grid */
+.factors-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+.factor-card {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+}
+.factor-icon { font-size: 1.3rem; margin-bottom: 0.3rem; }
+.factor-title { font-size: 0.82rem; font-weight: 800; margin-bottom: 0.25rem; }
+.factor-body { font-size: 0.75rem; color: var(--muted); line-height: 1.6; font-weight: 300; }
+
+.btn-retry {
+  width: 100%;
+  background: var(--ink);
+  color: var(--bg);
+  border: none;
+  padding: 1rem;
+  font-size: 0.95rem;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  font-weight: 700;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: transform 0.15s, opacity 0.15s;
+}
+.btn-retry:hover { opacity: 0.85; transform: translateY(-1px); }
+
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.scene-card { animation: riseIn 0.35s forwards; }
+</style>
+</head>
+<body>
+
+<!-- ===== INTRO ===== -->
+<div id="screen-intro" class="screen active">
+  <span class="tag">社会心理学 ／ 同調圧力体験</span>
+  <h1 class="intro-h1">
+    あなたは<br>
+    <span class="hi">流される？</span>
+  </h1>
+  <p class="intro-p">
+    周りがみんな同じ答えを選んでいたら、あなたはどうしますか？<br>
+    6つのシナリオで「同調圧力」を体験してみましょう。
+  </p>
+  <div class="scenario-preview">
+    <div class="sp-chip">👥 クラスの多数決</div>
+    <div class="sp-chip">📏 線の長さ判断</div>
+    <div class="sp-chip">🎵 音楽の好み投票</div>
+    <div class="sp-chip">💬 SNSの意見</div>
+    <div class="sp-chip">🍕 ランチの注文</div>
+    <div class="sp-chip">✋ 授業中の挙手</div>
+  </div>
+  <button class="btn-start" onclick="startScenarios()">体験スタート →</button>
+</div>
+
+<!-- ===== SCENARIO ===== -->
+<div id="screen-scenario" class="screen">
+  <div class="scenario-header">
+    <span class="round-badge" id="round-label">シナリオ 1 / 6</span>
+    <div class="progress-dots" id="progress-dots"></div>
+  </div>
+
+  <div class="pressure-wrap">
+    <div class="pressure-label">
+      <span>同調圧力レベル</span>
+      <span id="pressure-text">低</span>
+    </div>
+    <div class="pressure-bar"><div class="pressure-fill" id="pressure-fill"></div></div>
+  </div>
+
+  <div class="scene-card" id="scene-card">
+    <!-- injected by JS -->
+  </div>
+</div>
+
+<!-- ===== RESULT ===== -->
+<div id="screen-result" class="screen">
+  <div class="result-header">
+    <div class="result-h">流された回数：<span class="num" id="conform-count">0</span>回</div>
+    <div class="result-sub" id="result-message">—</div>
+  </div>
+
+  <div class="score-card">
+    <div class="score-row">
+      <div class="score-box">
+        <span class="score-num" id="sc-conform" style="color:var(--red)">0</span>
+        <div class="score-lbl">同調した</div>
+      </div>
+      <div class="score-box">
+        <span class="score-num" id="sc-resist" style="color:var(--blue)">0</span>
+        <div class="score-lbl">流されなかった</div>
+      </div>
+      <div class="score-box">
+        <span class="score-num" id="sc-rate" style="color:var(--gold)">0%</span>
+        <div class="score-lbl">同調率</div>
+      </div>
+    </div>
+    <div style="font-size:0.8rem; color:var(--muted); font-weight:300; line-height:1.8" id="asch-compare"></div>
+  </div>
+
+  <div class="timeline" id="timeline"></div>
+
+  <div class="explain-box">
+    <h3>🧪 アッシュの同調実験（Asch, 1951）</h3>
+    <p>
+      ソロモン・アッシュは「線の長さを答えるだけ」の実験で、<strong>被験者の約37%</strong>が「明らかに間違っている」多数派の答えに同調することを示しました。
+    </p>
+    <p>
+      同調は「弱さ」ではありません。<strong>社会的承認欲求・情報的影響・規範的影響</strong>という、人間に本来備わった社会的本能が働いているのです。
+    </p>
+    <p>
+      面白いことに、<strong>たった1人でも「仲間」がいると</strong>（＝自分と同じ答えを選ぶ人がいると）、同調率は大幅に下がります。
+    </p>
+  </div>
+
+  <div>
+    <div style="font-size:0.78rem; font-family:'Inconsolata',monospace; letter-spacing:0.12em; color:var(--muted); text-transform:uppercase; margin-bottom:0.7rem">同調しやすくなる条件</div>
+    <div class="factors-grid">
+      <div class="factor-card">
+        <div class="factor-icon">👥</div>
+        <div class="factor-title">多数派のサイズ</div>
+        <div class="factor-body">3人以上になると同調率が急上昇。それ以上増えても大差なし。</div>
+      </div>
+      <div class="factor-card">
+        <div class="factor-icon">🤝</div>
+        <div class="factor-title">全員一致</div>
+        <div class="factor-body">多数派が全員一致のとき最大。1人でも別意見があると激減。</div>
+      </div>
+      <div class="factor-card">
+        <div class="factor-icon">🔍</div>
+        <div class="factor-title">課題の曖昧さ</div>
+        <div class="factor-body">答えが不明確な問題ほど「周りに従った方が安全」と感じやすい。</div>
+      </div>
+      <div class="factor-card">
+        <div class="factor-icon">😰</div>
+        <div class="factor-title">公開 vs 匿名</div>
+        <div class="factor-body">名前が見える・声に出す状況では同調しやすく、匿名では減少。</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-retry" onclick="resetAll()">もう一度やってみる</button>
+</div>
+
+<script>
+// ===== SCENARIOS =====
+// pressure: 1〜5 (同調圧力の強さ)
+// majority: 多数派の選択肢index
+// correct: 客観的に正しい選択肢index (nullなら主観的)
+const SCENARIOS = [
+  {
+    id: 1,
+    pressure: 1,
+    situation: "授業中のクイズ。先生が黒板に3本の線を描きました。",
+    question: "基準の線（★）と同じ長さの線はどれですか？",
+    options: ["A（明らかに短い）", "B（同じ長さ）", "C（明らかに長い）"],
+    crowdLabel: "クラス29人の回答",
+    crowdVotes: [26, 2, 1],   // 多数派がAを選ぶ
+    majorityIdx: 0,
+    correctIdx: 1,
+    isObjective: true,
+    icon: "📏",
+    conformNote: "明らかにBが正解なのに、多数に従いAを選んだ（アッシュ実験の再現）",
+    resistNote: "周りに関係なく、正しい「B」を答えた",
+  },
+  {
+    id: 2,
+    pressure: 2,
+    situation: "クラスで「今人気のアーティスト」の投票をしています。",
+    question: "好きな音楽ジャンルを答えてください",
+    options: ["ヒップホップ（25人が選択中）", "ロック（3人が選択中）", "クラシック（2人が選択中）"],
+    crowdLabel: "リアルタイム投票結果",
+    crowdVotes: [25, 3, 2],
+    majorityIdx: 0,
+    correctIdx: null,
+    isObjective: false,
+    icon: "🎵",
+    conformNote: "本当の好みではなく、多数派に合わせて「ヒップホップ」を選んだ",
+    resistNote: "多数派に関係なく、自分の本当の好みを答えた",
+  },
+  {
+    id: 3,
+    pressure: 3,
+    situation: "グループランチ。みんなが「ラーメン屋にしよう」と言っています。あなたは今日カレーが食べたい気分です。",
+    question: "あなたはどうしますか？",
+    options: ["「私もラーメンでいいよ」と言う", "「私はカレーが食べたいんだけど…」と言う"],
+    crowdLabel: "グループ5人の意見",
+    crowdVotes: [5, 0],
+    majorityIdx: 0,
+    correctIdx: null,
+    isObjective: false,
+    icon: "🍜",
+    conformNote: "本当はカレーが食べたいのに、グループに合わせてラーメンにした",
+    resistNote: "少数意見でも、自分の希望をきちんと伝えた",
+  },
+  {
+    id: 4,
+    pressure: 3,
+    situation: "SNSで「この映画、つまらなかった」という投稿に大量のいいねがついています。あなたはその映画が好きでした。",
+    question: "あなたはどう返信しますか？",
+    options: ["「たしかに〜私もそう思った」とコメントする", "「私は面白かったけどな」と正直に書く", "何も書かない"],
+    crowdLabel: "コメント欄の雰囲気",
+    crowdVotes: [180, 3, 20],
+    majorityIdx: 0,
+    correctIdx: null,
+    isObjective: false,
+    icon: "📱",
+    conformNote: "本当は面白かったのに、周りの意見に合わせてしまった",
+    resistNote: "多数の意見に関係なく、自分の感想を表明した",
+  },
+  {
+    id: 5,
+    pressure: 4,
+    situation: "先生が「この答えはBだと思う人？」と聞きました。周りを見るとほぼ全員が手を挙げています。あなたはAだと思っていました。",
+    question: "あなたはどうしますか？",
+    options: ["（周りに合わせて）手を挙げる", "（自信がないので）手を挙げない", "「私はAだと思います」と言う"],
+    crowdLabel: "クラスの反応",
+    crowdVotes: [28, 1, 1],
+    majorityIdx: 0,
+    correctIdx: 2,
+    isObjective: true,
+    icon: "✋",
+    conformNote: "確信がなくなり、自分の答えを引っ込めてしまった",
+    resistNote: "多数派でも、自分の考えを持ち続けた",
+  },
+  {
+    id: 6,
+    pressure: 5,
+    situation: "委員会の話し合い。あなた以外の全員が「問題ない」と言っています。でもあなたには明らかに問題に見えます。",
+    question: "あなたはどうしますか？",
+    options: ["「そうですね、問題ないと思います」と合わせる", "「少し確認させてください」と言って疑問を呈する", "何も言わずに流す"],
+    crowdLabel: "委員会メンバー8人全員",
+    crowdVotes: [8, 0, 0],
+    majorityIdx: 0,
+    correctIdx: 1,
+    isObjective: true,
+    icon: "🏛️",
+    conformNote: "全員一致の空気に押されて問題を見逃してしまった（集団思考）",
+    resistNote: "全員が同意していても、疑問を声に上げた",
+  },
+];
+
+// ===== STATE =====
+let currentIdx = 0;
+let answers = [];   // { scenarioId, choseIdx, conformed, pressure }
+let crowdAnimDone = false;
+
+// ===== INIT =====
+function startScenarios() {
+  currentIdx = 0;
+  answers = [];
+  renderProgressDots();
+  showScreen('screen-scenario');
+  renderScene();
+}
+
+function renderProgressDots() {
+  const wrap = document.getElementById('progress-dots');
+  wrap.innerHTML = '';
+  SCENARIOS.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === currentIdx ? ' active' : '');
+    d.id = `dot-${i}`;
+    wrap.appendChild(d);
+  });
+}
+
+function updateDots() {
+  SCENARIOS.forEach((_, i) => {
+    const d = document.getElementById(`dot-${i}`);
+    if (!d) return;
+    d.className = 'dot' + (i < currentIdx ? ' done' : i === currentIdx ? ' active' : '');
+  });
+}
+
+function renderScene() {
+  const s = SCENARIOS[currentIdx];
+  document.getElementById('round-label').textContent = `シナリオ ${currentIdx + 1} / ${SCENARIOS.length}`;
+
+  // Pressure bar
+  const pct = (s.pressure / 5) * 100;
+  document.getElementById('pressure-fill').style.width = pct + '%';
+  const labels = ['', '低', '低〜中', '中', '中〜高', '高'];
+  document.getElementById('pressure-text').textContent = labels[s.pressure];
+
+  // Build crowd rows
+  const totalVotes = s.crowdVotes.reduce((a, b) => a + b, 0);
+  const crowdRows = s.options.map((opt, i) => {
+    const pctV = Math.round((s.crowdVotes[i] / totalVotes) * 100);
+    const isMaj = i === s.majorityIdx;
+    return `
+      <div class="crowd-vote-row">
+        <div class="crowd-avatars">
+          ${Array.from({length: Math.min(s.crowdVotes[i], 5)}).map(() =>
+            `<div class="avatar ${isMaj ? 'av-agree' : 'av-other'}">${isMaj ? '😐' : '😶'}</div>`
+          ).join('')}
+          ${s.crowdVotes[i] > 5 ? `<div class="avatar av-other" style="font-size:0.6rem;background:transparent;color:var(--muted)">+${s.crowdVotes[i]-5}</div>` : ''}
+        </div>
+        <div class="crowd-option">${opt.split('（')[0]}</div>
+        <div class="crowd-bar-mini">
+          <div class="crowd-bar-fill ${isMaj ? 'fill-majority' : 'fill-minority'}" 
+               id="cb-${i}" style="width:0%"></div>
+        </div>
+        <div class="crowd-pct">${pctV}%</div>
+      </div>`;
+  }).join('');
+
+  // Build choice buttons
+  const choiceBtns = s.options.map((opt, i) =>
+    `<button class="choice-btn" onclick="selectChoice(${i})" id="cb-btn-${i}">
+      <span class="choice-icon">${i === s.majorityIdx ? '👥' : '💬'}</span>
+      ${opt}
+    </button>`
+  ).join('');
+
+  document.getElementById('scene-card').innerHTML = `
+    <div class="scene-situation">
+      <strong>${s.icon} シナリオ ${s.id}</strong>　${s.situation}
+    </div>
+    <div class="scene-body">
+      <div class="scene-question">${s.question}</div>
+      <div class="crowd-box">
+        <div class="crowd-label">📊 ${s.crowdLabel}</div>
+        <div class="crowd-votes">${crowdRows}</div>
+      </div>
+      <div class="choices">${choiceBtns}</div>
+    </div>
+  `;
+
+  // Animate crowd bars
+  setTimeout(() => {
+    s.options.forEach((_, i) => {
+      const el = document.getElementById(`cb-${i}`);
+      if (el) {
+        const pctV = Math.round((s.crowdVotes[i] / totalVotes) * 100);
+        el.style.width = pctV + '%';
+      }
+    });
+  }, 200);
+
+  updateDots();
+}
+
+function selectChoice(chosenIdx) {
+  const s = SCENARIOS[currentIdx];
+  const conformed = (chosenIdx === s.majorityIdx) && s.correctIdx !== s.majorityIdx;
+  // If majority IS correct, conforming isn't really "caving" — mark based on isObjective
+  const isConform = s.isObjective
+    ? (chosenIdx === s.majorityIdx && s.majorityIdx !== s.correctIdx)
+    : (chosenIdx === s.majorityIdx);
+
+  answers.push({ scenarioId: s.id, choseIdx: chosenIdx, conformed: isConform, pressure: s.pressure, scenario: s, note: isConform ? s.conformNote : s.resistNote });
+
+  // Visual feedback
+  const btn = document.getElementById(`cb-btn-${chosenIdx}`);
+  if (btn) {
+    btn.classList.add(isConform ? 'selected-conform' : 'selected-resist');
+    // Disable all
+    document.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+  }
+
+  setTimeout(() => {
+    currentIdx++;
+    if (currentIdx >= SCENARIOS.length) {
+      showResults();
+    } else {
+      renderScene();
+    }
+  }, 600);
+}
+
+function showResults() {
+  const conformCount = answers.filter(a => a.conformed).length;
+  const resistCount  = answers.length - conformCount;
+  const rate = Math.round((conformCount / answers.length) * 100);
+
+  document.getElementById('conform-count').textContent = conformCount;
+  document.getElementById('sc-conform').textContent = conformCount;
+  document.getElementById('sc-resist').textContent = resistCount;
+  document.getElementById('sc-rate').textContent = rate + '%';
+
+  // Message
+  let msg = '';
+  if (rate >= 67) msg = '同調傾向が高めです。社会的つながりを大切にするタイプかもしれません。';
+  else if (rate >= 34) msg = '状況によって同調したり流されなかったり。バランス型です。';
+  else msg = '同調圧力に流されにくいタイプ。独立した思考力が高いです！';
+  document.getElementById('result-message').textContent = msg;
+
+  // Asch compare
+  document.getElementById('asch-compare').innerHTML =
+    `アッシュ実験（1951）では平均同調率は約 <strong>37%</strong>。あなたは <strong>${rate}%</strong> でした。`;
+
+  // Timeline
+  const tl = document.getElementById('timeline');
+  tl.innerHTML = '<div style="font-size:0.78rem;font-family:Inconsolata,monospace;letter-spacing:0.12em;color:var(--muted);text-transform:uppercase;margin-bottom:0.3rem">各シナリオの記録</div>';
+  answers.forEach((a, i) => {
+    const s = a.scenario;
+    const div = document.createElement('div');
+    div.className = 'tl-item';
+    div.innerHTML = `
+      <div class="tl-num">${i + 1}</div>
+      <div class="tl-q">${s.icon} ${s.situation.slice(0, 28)}…</div>
+      <span class="tl-badge ${a.conformed ? 'badge-conform' : 'badge-resist'}">
+        ${a.conformed ? '同調' : '抵抗'}
+      </span>
+      <div class="tl-pressure">圧力${'★'.repeat(s.pressure)}${'☆'.repeat(5 - s.pressure)}</div>
+    `;
+    tl.appendChild(div);
+  });
+
+  showScreen('screen-result');
+}
+
+function resetAll() {
+  currentIdx = 0;
+  answers = [];
+  showScreen('screen-intro');
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = 'none';
+  });
+  const el = document.getElementById(id);
+  el.classList.add('active');
+  el.style.display = 'flex';
+  window.scrollTo(0, 0);
+}
+
+// init
+document.querySelectorAll('.screen').forEach(s => { s.style.display = 'none'; });
+document.getElementById('screen-intro').style.display = 'flex';
+document.getElementById('screen-intro').classList.add('active');
+</script>
+</body>
+</html>
