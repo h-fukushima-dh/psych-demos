@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ハロー効果体験 — 第一印象が判断を歪める</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700;900&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  --bg:      #F8F6F2;
+  --ink:     #1E1C2C;
+  --surface: #ECEAE4;
+  --card:    #FFFFFF;
+  --border:  #DEDAD2;
+  --muted:   #9490A8;
+  --gold:    #D4900A;
+  --blue:    #2A5CB8;
+  --red:     #C83838;
+  --green:   #1A9060;
+  --purple:  #7030B0;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans JP', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.screen { display: none; }
+.screen.active { display: flex; flex-direction: column; align-items: center; }
+
+/* ======= INTRO ======= */
+#screen-intro {
+  min-height: 100vh;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  gap: 1.8rem;
+}
+
+.intro-tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  color: var(--muted);
+  text-transform: uppercase;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 0.3rem 1rem;
+  display: inline-block;
+  opacity: 0; animation: up 0.5s 0.1s forwards;
+}
+
+.intro-h1 {
+  font-size: clamp(2rem, 6vw, 3.4rem);
+  font-weight: 900;
+  line-height: 1.2;
+  opacity: 0; animation: up 0.5s 0.22s forwards;
+}
+.intro-h1 em { font-style: normal; color: var(--gold); }
+
+.intro-p {
+  max-width: 460px;
+  font-size: 0.95rem;
+  line-height: 2;
+  color: var(--muted);
+  font-weight: 300;
+  opacity: 0; animation: up 0.5s 0.35s forwards;
+}
+
+/* Preview profiles */
+.preview-profiles {
+  display: flex;
+  gap: 1.2rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  opacity: 0; animation: up 0.5s 0.48s forwards;
+}
+.preview-profile {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  text-align: center;
+  width: 130px;
+}
+.preview-avatar {
+  font-size: 2.5rem;
+  margin-bottom: 0.4rem;
+}
+.preview-name { font-size: 0.85rem; font-weight: 700; }
+.preview-tag {
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  margin-top: 0.3rem;
+  display: inline-block;
+  font-weight: 700;
+}
+
+.flow-chips {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  opacity: 0; animation: up 0.5s 0.58s forwards;
+}
+.flow-chip {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.btn-start {
+  background: var(--ink);
+  color: #fff;
+  border: none;
+  padding: 1.1rem 3rem;
+  font-size: 1rem;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 700;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  opacity: 0; animation: up 0.5s 0.68s forwards;
+}
+.btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(30,28,44,0.18); }
+
+/* ======= PHASE A — First impression ======= */
+#screen-phase-a {
+  min-height: 100vh;
+  padding: 1.5rem 1.2rem 2.5rem;
+  gap: 1.2rem;
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.phase-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.phase-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.progress-dots {
+  display: flex; gap: 0.4rem;
+}
+.pdot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background 0.3s;
+}
+.pdot.done { background: var(--ink); }
+.pdot.active { background: var(--gold); }
+
+.phase-progress {
+  width: 100%; height: 5px;
+  background: var(--surface);
+  border-radius: 3px; overflow: hidden;
+}
+.phase-progress-fill {
+  height: 100%; background: var(--gold);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+  width: 0%;
+}
+
+/* Profile card */
+.profile-card {
+  width: 100%;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(30,28,44,0.07);
+}
+
+.profile-top {
+  padding: 1.6rem 1.5rem 1rem;
+  display: flex;
+  gap: 1.2rem;
+  align-items: flex-start;
+}
+.profile-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+.profile-avatar {
+  font-size: 3.5rem;
+  line-height: 1;
+}
+.halo-badge {
+  position: absolute;
+  bottom: -4px; right: -4px;
+  font-size: 1.1rem;
+}
+.profile-info {}
+.profile-name {
+  font-size: 1.3rem;
+  font-weight: 900;
+  margin-bottom: 0.2rem;
+}
+.profile-title {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 300;
+  margin-bottom: 0.6rem;
+}
+.profile-tags {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.ptag {
+  font-size: 0.72rem;
+  padding: 0.18rem 0.55rem;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+.profile-desc {
+  padding: 0 1.5rem 1.4rem;
+  font-size: 0.92rem;
+  line-height: 1.9;
+  color: var(--muted);
+  font-weight: 300;
+}
+.profile-desc strong { color: var(--ink); font-weight: 700; }
+
+/* Rating section */
+.rating-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.rating-item {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+}
+.rating-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: 0.7rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.rating-stars {
+  display: flex;
+  gap: 0.4rem;
+}
+.star-btn {
+  font-size: 1.6rem;
+  cursor: pointer;
+  background: none;
+  border: none;
+  transition: transform 0.1s;
+  line-height: 1;
+  filter: grayscale(100%) opacity(0.3);
+}
+.star-btn:hover, .star-btn.lit {
+  filter: none;
+  transform: scale(1.15);
+}
+.star-btn.lit { filter: none; }
+
+.btn-next {
+  background: var(--ink);
+  color: #fff;
+  border: none;
+  padding: 1rem;
+  width: 100%;
+  font-size: 1rem;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 700;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+  opacity: 0.3;
+  pointer-events: none;
+}
+.btn-next.ready { opacity: 1; pointer-events: all; }
+.btn-next.ready:hover { background: var(--gold); }
+
+/* ======= PHASE B — Second impression ======= */
+/* reuses phase-a styles, just different colors */
+
+/* ======= RESULT ======= */
+#screen-result {
+  min-height: 100vh;
+  padding: 2rem 1.2rem 3rem;
+  gap: 1.5rem;
+  max-width: 640px;
+  margin: 0 auto;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.result-header { text-align: center; width: 100%; }
+.result-h { font-size: clamp(1.5rem, 4vw, 2rem); font-weight: 900; line-height: 1.2; margin-bottom: 0.4rem; }
+.result-h em { font-style: normal; color: var(--gold); }
+.result-sub { font-size: 0.9rem; color: var(--muted); font-weight: 300; }
+
+/* Comparison table */
+.compare-card {
+  width: 100%;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  padding: 1.3rem 1.4rem;
+  box-shadow: 0 4px 20px rgba(30,28,44,0.07);
+}
+.compare-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: center;
+}
+.compare-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+  align-items: center;
+}
+.cmp-trait { font-size: 0.85rem; font-weight: 700; color: var(--ink); }
+.cmp-stars { text-align: center; font-size: 0.9rem; }
+.cmp-diff {
+  text-align: center;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.diff-pos { color: var(--gold); }
+.diff-neg { color: var(--blue); }
+.diff-zero { color: var(--muted); }
+
+.halo-result-box {
+  width: 100%;
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+.halo-effect-num {
+  font-family: 'Space Mono', monospace;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--gold);
+}
+.halo-effect-lbl { font-size: 0.8rem; color: var(--muted); margin-top: 0.2rem; }
+
+/* Explain */
+.explain-box {
+  width: 100%;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  padding: 1.3rem 1.4rem;
+}
+.explain-box h3 { font-size: 1rem; font-weight: 900; margin-bottom: 0.8rem; }
+.explain-box p { font-size: 0.88rem; color: var(--muted); line-height: 1.9; font-weight: 300; margin-bottom: 0.6rem; }
+.explain-box p:last-child { margin-bottom: 0; }
+.explain-box strong { color: var(--ink); font-weight: 700; }
+
+.apps-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+.app-card {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+}
+.app-icon { font-size: 1.3rem; margin-bottom: 0.3rem; }
+.app-title { font-size: 0.82rem; font-weight: 700; margin-bottom: 0.2rem; }
+.app-body { font-size: 0.75rem; color: var(--muted); line-height: 1.6; font-weight: 300; }
+
+.discuss-box {
+  width: 100%;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  padding: 1.3rem 1.4rem;
+}
+.discuss-box h3 { font-size: 1rem; font-weight: 900; margin-bottom: 0.8rem; }
+.discuss-q {
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.discuss-q:last-child { margin-bottom: 0; }
+
+.btn-retry {
+  width: 100%;
+  background: var(--ink);
+  color: #fff;
+  border: none;
+  padding: 1rem;
+  font-size: 0.95rem;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 700;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.btn-retry:hover { opacity: 0.85; transform: translateY(-1px); }
+
+@keyframes up {
+  from { opacity:0; transform:translateY(14px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes cardSlide {
+  from { opacity:0; transform:translateX(20px); }
+  to   { opacity:1; transform:translateX(0); }
+}
+.profile-card { animation: cardSlide 0.3s forwards; }
+</style>
+</head>
+<body>
+
+<!-- ======= INTRO ======= -->
+<div id="screen-intro" class="screen active">
+  <span class="intro-tag">社会心理学 ／ 認知バイアス体験</span>
+  <h1 class="intro-h1">第一印象が<br><em>すべてを決める？</em></h1>
+  <p class="intro-p">
+    2人の人物プロフィールを読んで、いくつかの特性を評価してもらいます。<br>
+    あなたの評価に「ハロー効果」は働いていたでしょうか？
+  </p>
+
+  <div class="preview-profiles">
+    <div class="preview-profile">
+      <div class="preview-avatar">😊</div>
+      <div class="preview-name">人物 A</div>
+      <div class="preview-tag" style="background:#FFF0D8;color:var(--gold)">✨ 好印象</div>
+    </div>
+    <div class="preview-profile">
+      <div class="preview-avatar">😐</div>
+      <div class="preview-name">人物 B</div>
+      <div class="preview-tag" style="background:#E8E8F0;color:var(--muted)">？ 普通</div>
+    </div>
+  </div>
+
+  <div class="flow-chips">
+    <div class="flow-chip"><span>👁️</span>プロフィールを見る</div>
+    <div class="flow-chip"><span>⭐</span>特性を評価する</div>
+    <div class="flow-chip"><span>📊</span>バイアスを確認</div>
+  </div>
+
+  <button class="btn-start" onclick="startExperiment()">実験スタート →</button>
+</div>
+
+<!-- ======= PHASE A ======= -->
+<div id="screen-phase-a" class="screen">
+  <div class="phase-header">
+    <span class="phase-label" id="phase-a-label">PHASE 1 — 人物A を評価する</span>
+    <div class="progress-dots" id="dots-a"></div>
+  </div>
+  <div class="phase-progress">
+    <div class="phase-progress-fill" id="fill-a"></div>
+  </div>
+  <div class="profile-card" id="profile-card-a"><!-- injected --></div>
+  <div class="rating-section" id="ratings-a"><!-- injected --></div>
+  <button class="btn-next" id="btn-next-a" onclick="goPhaseB()">次の人物を評価する →</button>
+</div>
+
+<!-- ======= PHASE B ======= -->
+<div id="screen-phase-b" class="screen">
+  <div class="phase-header">
+    <span class="phase-label" id="phase-b-label">PHASE 2 — 人物B を評価する</span>
+    <div class="progress-dots" id="dots-b"></div>
+  </div>
+  <div class="phase-progress">
+    <div class="phase-progress-fill" id="fill-b" style="background:var(--blue)"></div>
+  </div>
+  <div class="profile-card" id="profile-card-b"><!-- injected --></div>
+  <div class="rating-section" id="ratings-b"><!-- injected --></div>
+  <button class="btn-next" id="btn-next-b" onclick="showResults()">結果を見る →</button>
+</div>
+
+<!-- ======= RESULT ======= -->
+<div id="screen-result" class="screen">
+  <div class="result-header">
+    <div class="result-h">あなたの評価に<br><em>ハロー効果</em>はあった？</div>
+    <div class="result-sub" id="result-sub-text">—</div>
+  </div>
+
+  <div class="compare-card">
+    <div style="font-family:'Space Mono',monospace;font-size:0.68rem;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;margin-bottom:0.8rem">評価比較</div>
+    <div class="compare-header">
+      <div>評価項目</div>
+      <div>人物A ✨</div>
+      <div>人物B 😐</div>
+    </div>
+    <div id="compare-rows"><!-- injected --></div>
+    <div class="halo-result-box">
+      <div class="halo-effect-num" id="halo-diff">—</div>
+      <div class="halo-effect-lbl">Aの平均評価 − Bの平均評価（＋なら「A優遇」のハロー効果）</div>
+    </div>
+  </div>
+
+  <div class="explain-box">
+    <h3>💫 ハロー効果（Halo Effect）とは</h3>
+    <p>ある人や物事の<strong>ひとつの目立つ特性</strong>（好印象）が、その他の無関係な特性の評価にも影響を及ぼす認知バイアスです。心理学者 <strong>エドワード・ソーンダイク</strong>が1920年に命名しました。</p>
+    <p>人物Aには「名門大学出身・スポーツが得意・笑顔が素敵」という<strong>ポジティブなハロー</strong>を仕込みました。一方、人物Bは「特に目立った情報なし」の中立プロフィールです。2人の<strong>仕事能力や誠実さ</strong>については、どちらのプロフィールにも書いていません。</p>
+    <p>それでも多くの人がAをBより高く評価します。これがハロー効果です。逆に悪い印象が広がる場合は<strong>「デビル効果（horn effect）」</strong>とも呼びます。</p>
+  </div>
+
+  <div>
+    <div style="font-family:'Space Mono',monospace;font-size:0.68rem;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;margin-bottom:0.6rem">日常・社会への影響</div>
+    <div class="apps-grid">
+      <div class="app-card">
+        <div class="app-icon">💼</div>
+        <div class="app-title">採用・人事評価</div>
+        <div class="app-body">「見た目が良い」「話し方が上手」だけで仕事能力まで高く評価してしまう。</div>
+      </div>
+      <div class="app-card">
+        <div class="app-icon">🏫</div>
+        <div class="app-title">教育・成績評価</div>
+        <div class="app-body">「字がきれい」「態度が良い」生徒は内容の薄いレポートでも高評価を得やすい。</div>
+      </div>
+      <div class="app-card">
+        <div class="app-icon">🛒</div>
+        <div class="app-title">マーケティング</div>
+        <div class="app-body">有名人・魅力的なパッケージが商品の品質評価まで引き上げる。</div>
+      </div>
+      <div class="app-card">
+        <div class="app-icon">⚖️</div>
+        <div class="app-title">司法・判断</div>
+        <div class="app-body">外見の魅力がある被告は、そうでない被告より軽い判決を受ける傾向がある（研究より）。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="discuss-box">
+    <h3>💬 考えてみよう</h3>
+    <div class="discuss-q"><span>🤔</span><span>人物Aを高く評価した理由を思い出してみよう。「なんとなく良さそう」と感じたのはなぜ？</span></div>
+    <div class="discuss-q"><span>🔍</span><span>採用面接でハロー効果を防ぐにはどうすればいい？（構造化面接・複数評価者など）</span></div>
+    <div class="discuss-q"><span>📱</span><span>SNSのフォロワー数や「いいね」の多さが、投稿の内容評価に影響する？ これもハロー効果？</span></div>
+    <div class="discuss-q"><span>🔄</span><span>ハロー効果の逆（デビル効果）の例を日常から探してみよう。</span></div>
+  </div>
+
+  <button class="btn-retry" onclick="resetAll()">もう一度やってみる</button>
+</div>
+
+<script>
+// ===== PROFILES =====
+const PROFILE_A = {
+  id: 'A',
+  avatar: '😊',
+  halo: '✨',
+  name: '田中 健太',
+  title: '26歳 ／ 営業職 2年目',
+  tags: [
+    { t: '名門大出身', bg: '#FFF0D8', col: '#C87A10' },
+    { t: 'スポーツ得意', bg: '#E8F4EC', col: '#1A9060' },
+    { t: '笑顔が素敵', bg: '#FDE8F0', col: '#C83878' },
+  ],
+  desc: '有名私立大学を卒業後、現在の会社に入社。<strong>学生時代は野球部のキャプテン</strong>を務め、チームをリードした経験を持つ。周囲からは<strong>「いつも明るく話しかけやすい」</strong>と言われる。趣味はランニングとカフェ巡り。',
+  headerColor: '#FFF0D8',
+  accentColor: '#D4900A',
+};
+
+const PROFILE_B = {
+  id: 'B',
+  avatar: '😐',
+  halo: '',
+  name: '佐藤 誠',
+  title: '26歳 ／ 営業職 2年目',
+  tags: [
+    { t: '普通の大学卒', bg: '#ECEAE4', col: '#9490A8' },
+    { t: '特技：読書', bg: '#ECEAE4', col: '#9490A8' },
+  ],
+  desc: '大学卒業後、現在の会社に入社。学生時代は特に目立った活動はしていなかった。<strong>特に印象に残る点はないが</strong>、真面目に業務に取り組んでいる。趣味は読書と料理。',
+  headerColor: '#F0EFE8',
+  accentColor: '#9490A8',
+};
+
+// ===== RATING TRAITS =====
+const TRAITS = [
+  { key: 'work',    label: '仕事能力', icon: '💼' },
+  { key: 'honest',  label: '誠実さ',   icon: '🤝' },
+  { key: 'smart',   label: '頭の良さ', icon: '🧠' },
+  { key: 'kind',    label: '思いやり', icon: '💛' },
+];
+
+// ===== STATE =====
+let ratingsA = {};
+let ratingsB = {};
+
+// ===== RENDER PROFILE CARD =====
+function renderProfileCard(profile, containerId) {
+  const el = document.getElementById(containerId);
+  el.style.animation = 'none';
+  void el.offsetWidth;
+  el.style.animation = '';
+  el.innerHTML = `
+    <div class="profile-top" style="background:${profile.headerColor}20">
+      <div class="profile-avatar-wrap">
+        <div class="profile-avatar">${profile.avatar}</div>
+        ${profile.halo ? `<div class="halo-badge">${profile.halo}</div>` : ''}
+      </div>
+      <div class="profile-info">
+        <div class="profile-name">${profile.name}</div>
+        <div class="profile-title">${profile.title}</div>
+        <div class="profile-tags">
+          ${profile.tags.map(t => `<span class="ptag" style="background:${t.bg};color:${t.col}">${t.t}</span>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="profile-desc">${profile.desc}</div>
+  `;
+}
+
+// ===== RENDER RATINGS =====
+function renderRatings(containerId, profileId, btnId) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  const ratings = profileId === 'A' ? ratingsA : ratingsB;
+
+  TRAITS.forEach(trait => {
+    const item = document.createElement('div');
+    item.className = 'rating-item';
+    item.innerHTML = `
+      <div class="rating-label">${trait.icon} ${trait.label}を5段階で評価してください</div>
+      <div class="rating-stars" id="stars-${profileId}-${trait.key}">
+        ${[1,2,3,4,5].map(n =>
+          `<button class="star-btn" data-val="${n}" onclick="setRating('${profileId}','${trait.key}',${n})">⭐</button>`
+        ).join('')}
+      </div>
+    `;
+    el.appendChild(item);
+  });
+
+  checkReady(profileId, btnId);
+}
+
+function setRating(profileId, traitKey, val) {
+  const ratings = profileId === 'A' ? ratingsA : ratingsB;
+  ratings[traitKey] = val;
+
+  const stars = document.querySelectorAll(`#stars-${profileId}-${traitKey} .star-btn`);
+  stars.forEach(s => {
+    const sv = parseInt(s.dataset.val);
+    s.classList.toggle('lit', sv <= val);
+  });
+
+  const btnId = profileId === 'A' ? 'btn-next-a' : 'btn-next-b';
+  checkReady(profileId, btnId);
+}
+
+function checkReady(profileId, btnId) {
+  const ratings = profileId === 'A' ? ratingsA : ratingsB;
+  const filled = TRAITS.every(t => ratings[t.key] !== undefined);
+  const btn = document.getElementById(btnId);
+  if (btn) btn.classList.toggle('ready', filled);
+}
+
+// ===== PHASE CONTROL =====
+function startExperiment() {
+  ratingsA = {};
+  ratingsB = {};
+  renderProfileCard(PROFILE_A, 'profile-card-a');
+  renderRatings('ratings-a', 'A', 'btn-next-a');
+  updateDots('dots-a', 0, TRAITS.length);
+  document.getElementById('fill-a').style.width = '0%';
+  showScreen('screen-phase-a');
+}
+
+function goPhaseB() {
+  renderProfileCard(PROFILE_B, 'profile-card-b');
+  renderRatings('ratings-b', 'B', 'btn-next-b');
+  updateDots('dots-b', 0, TRAITS.length);
+  document.getElementById('fill-b').style.width = '0%';
+  showScreen('screen-phase-b');
+}
+
+function updateDots(containerId, done, total) {
+  const wrap = document.getElementById(containerId);
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  for (let i = 0; i < total; i++) {
+    const d = document.createElement('div');
+    d.className = 'pdot' + (i < done ? ' done' : i === done ? ' active' : '');
+    wrap.appendChild(d);
+  }
+}
+
+// ===== RESULTS =====
+function showResults() {
+  // Calculate averages
+  const avgA = TRAITS.reduce((s, t) => s + (ratingsA[t.key] || 0), 0) / TRAITS.length;
+  const avgB = TRAITS.reduce((s, t) => s + (ratingsB[t.key] || 0), 0) / TRAITS.length;
+  const diff = avgA - avgB;
+
+  // Summary text
+  let sub = '';
+  if (diff > 1.0) sub = `AをBより平均 ${diff.toFixed(1)} 点高く評価しました。強いハロー効果が観察されています！`;
+  else if (diff > 0.3) sub = `AをBより平均 ${diff.toFixed(1)} 点高く評価しました。ハロー効果の影響が見られます。`;
+  else if (diff > -0.3) sub = `AとBの評価はほぼ同じでした。ハロー効果をうまく回避できた可能性があります！`;
+  else sub = `BをAより高く評価しました。「目立つ情報」に流されなかったようです。`;
+  document.getElementById('result-sub-text').textContent = sub;
+
+  // Compare rows
+  const rowsEl = document.getElementById('compare-rows');
+  rowsEl.innerHTML = '';
+  TRAITS.forEach(t => {
+    const vA = ratingsA[t.key] || 0;
+    const vB = ratingsB[t.key] || 0;
+    const d  = vA - vB;
+    const row = document.createElement('div');
+    row.className = 'compare-row';
+    row.innerHTML = `
+      <div class="cmp-trait">${t.icon} ${t.label}</div>
+      <div class="cmp-stars">${'⭐'.repeat(vA)}${'☆'.repeat(5-vA)}</div>
+      <div class="cmp-stars">${'⭐'.repeat(vB)}${'☆'.repeat(5-vB)}</div>
+    `;
+    rowsEl.appendChild(row);
+  });
+
+  // Average row
+  const avgRow = document.createElement('div');
+  avgRow.className = 'compare-row';
+  avgRow.style.borderTop = '1px solid var(--border)';
+  avgRow.style.paddingTop = '0.6rem';
+  avgRow.style.marginTop = '0.3rem';
+  avgRow.innerHTML = `
+    <div class="cmp-trait" style="color:var(--muted);font-size:0.8rem">平均</div>
+    <div class="cmp-stars" style="font-family:'Space Mono',monospace;font-size:0.9rem;color:var(--gold)">${avgA.toFixed(1)}</div>
+    <div class="cmp-stars" style="font-family:'Space Mono',monospace;font-size:0.9rem;color:var(--blue)">${avgB.toFixed(1)}</div>
+  `;
+  rowsEl.appendChild(avgRow);
+
+  // Halo diff
+  const diffEl = document.getElementById('halo-diff');
+  diffEl.textContent = (diff >= 0 ? '+' : '') + diff.toFixed(1) + ' 点';
+  diffEl.style.color = diff > 0.3 ? 'var(--gold)' : diff < -0.3 ? 'var(--blue)' : 'var(--green)';
+
+  showScreen('screen-result');
+}
+
+// ===== HELPERS =====
+function resetAll() { showScreen('screen-intro'); }
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = 'none';
+  });
+  const el = document.getElementById(id);
+  el.classList.add('active');
+  el.style.display = 'flex';
+  window.scrollTo(0, 0);
+}
+
+// Init
+document.querySelectorAll('.screen').forEach(s => { s.style.display = 'none'; });
+document.getElementById('screen-intro').style.display = 'flex';
+document.getElementById('screen-intro').classList.add('active');
+</script>
+</body>
+</html>
