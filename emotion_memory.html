@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>感情と記憶のクイズ — フラッシュバルブ記憶体験</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #0F0E17;
+  --surface: #1A1828;
+  --card: #211F35;
+  --border: #302E4A;
+  --text: #E8E6F0;
+  --muted: #7A7898;
+  --accent-warm: #FF6B35;
+  --accent-cool: #A8DADC;
+  --accent-gold: #FFD166;
+  --accent-purple: #9B72CF;
+  --green: #06D6A0;
+  --red: #EF476F;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Shippori Mincho', serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* subtle radial glow */
+body::after {
+  content: '';
+  position: fixed;
+  top: -20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80vw;
+  height: 60vh;
+  background: radial-gradient(ellipse, rgba(155,114,207,0.06) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.screen { display: none; position: relative; z-index: 1; }
+.screen.active { display: block; }
+
+/* ========= INTRO ========= */
+#screen-intro {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  gap: 1.5rem;
+}
+
+.intro-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  color: var(--accent-cool);
+  text-transform: uppercase;
+  opacity: 0;
+  animation: up 0.6s 0.1s forwards;
+}
+
+.intro-h1 {
+  font-size: clamp(2rem, 6vw, 3.6rem);
+  font-weight: 800;
+  line-height: 1.2;
+  opacity: 0;
+  animation: up 0.6s 0.25s forwards;
+}
+.intro-h1 em { font-style: normal; color: var(--accent-warm); }
+
+.intro-p {
+  max-width: 500px;
+  font-size: 1rem;
+  line-height: 2;
+  color: var(--muted);
+  opacity: 0;
+  animation: up 0.6s 0.4s forwards;
+}
+
+.phase-cards {
+  display: flex;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 540px;
+  opacity: 0;
+  animation: up 0.6s 0.55s forwards;
+}
+
+.phase-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.8rem 1.2rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.phase-card span { font-size: 1.1rem; }
+.phase-card strong { color: var(--text); }
+
+.btn-primary {
+  background: var(--accent-warm);
+  color: #fff;
+  border: none;
+  padding: 1rem 3rem;
+  font-size: 1rem;
+  font-family: 'Shippori Mincho', serif;
+  font-weight: 700;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  opacity: 0;
+  animation: up 0.6s 0.7s forwards;
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(255,107,53,0.35); }
+
+/* ========= STUDY PHASE ========= */
+#screen-study {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  gap: 1.5rem;
+}
+
+.phase-header { text-align: center; }
+.phase-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+.phase-title { font-size: clamp(1.3rem, 3vw, 1.9rem); font-weight: 700; }
+.phase-sub { font-size: 0.9rem; color: var(--muted); margin-top: 0.4rem; }
+
+/* Word list display */
+.wordlist-wrap {
+  position: relative;
+  width: min(480px, 95vw);
+}
+
+.word-display {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  overflow: hidden;
+}
+
+/* Emotion list — big words */
+.word-item {
+  font-size: clamp(1.5rem, 5vw, 2.2rem);
+  font-weight: 700;
+  padding: 0.3rem 0.8rem;
+  border-radius: 4px;
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: opacity 0.4s, transform 0.4s;
+  text-align: center;
+}
+.word-item.show { opacity: 1; transform: translateX(0); }
+.word-item.emotion { color: var(--accent-warm); }
+.word-item.neutral { color: var(--accent-cool); }
+
+.progress-bar-wrap {
+  width: min(480px, 95vw);
+}
+.progress-bar {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--accent-warm);
+  border-radius: 2px;
+  transition: width 0.3s;
+  width: 0%;
+}
+.progress-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 0.4rem;
+  text-align: right;
+}
+
+.list-type-badge {
+  display: inline-block;
+  padding: 0.25rem 0.8rem;
+  border-radius: 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+.badge-emotion { background: rgba(255,107,53,0.15); color: var(--accent-warm); border: 1px solid rgba(255,107,53,0.3); }
+.badge-neutral { background: rgba(168,218,220,0.12); color: var(--accent-cool); border: 1px solid rgba(168,218,220,0.3); }
+
+/* ========= DISTRACT ========= */
+#screen-distract {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  gap: 1.5rem;
+  text-align: center;
+}
+
+.distract-h { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 700; }
+.distract-p { color: var(--muted); font-size: 1rem; max-width: 420px; line-height: 1.9; }
+
+.math-problem {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2rem 3rem;
+  text-align: center;
+}
+.math-eq {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  color: var(--accent-gold);
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+.math-input {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.math-input input {
+  width: 100px;
+  text-align: center;
+  font-size: 1.5rem;
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--card);
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.math-input input:focus { border-color: var(--accent-gold); }
+.math-feedback {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  min-height: 1.3em;
+  margin-top: 0.6rem;
+}
+.math-feedback.ok  { color: var(--green); }
+.math-feedback.ng  { color: var(--red); }
+
+.distract-counter {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* ========= RECALL ========= */
+#screen-recall {
+  min-height: 100vh;
+  padding: 2rem 1.5rem;
+  max-width: 620px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.recall-header { text-align: center; }
+
+.recall-instruction {
+  background: var(--surface);
+  border-left: 3px solid var(--accent-warm);
+  border-radius: 0 8px 8px 0;
+  padding: 1rem 1.2rem;
+  font-size: 0.95rem;
+  line-height: 1.8;
+  color: var(--muted);
+}
+.recall-instruction strong { color: var(--text); }
+
+.recall-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+@media (max-width: 480px) { .recall-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.recall-btn {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 0.4rem;
+  font-size: clamp(0.8rem, 2.5vw, 1rem);
+  font-family: 'Shippori Mincho', serif;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, transform 0.1s;
+  text-align: center;
+}
+.recall-btn:hover:not(.chosen) { border-color: var(--accent-cool); }
+.recall-btn.chosen { background: rgba(255,107,53,0.15); border-color: var(--accent-warm); color: var(--accent-warm); }
+
+.recall-selected-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.btn-submit-recall {
+  background: var(--accent-warm);
+  color: #fff;
+  border: none;
+  padding: 1rem;
+  width: 100%;
+  font-size: 1rem;
+  font-family: 'Shippori Mincho', serif;
+  font-weight: 700;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+  opacity: 0.35;
+  pointer-events: none;
+}
+.btn-submit-recall.ready { opacity: 1; pointer-events: all; }
+.btn-submit-recall.ready:hover { background: #e55a25; }
+
+/* ========= RESULT ========= */
+#screen-result {
+  min-height: 100vh;
+  padding: 2rem 1.5rem;
+  max-width: 680px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.result-header { text-align: center; }
+.result-title { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; margin-bottom: 0.4rem; }
+.result-title em { font-style: normal; color: var(--accent-warm); }
+.result-sub { color: var(--muted); font-size: 0.95rem; }
+
+/* Score bars */
+.score-section-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 0.8rem;
+}
+.score-bars { display: flex; flex-direction: column; gap: 0.8rem; }
+
+.score-row { display: flex; align-items: center; gap: 0.8rem; }
+.score-row-label {
+  font-size: 0.9rem;
+  width: 90px;
+  flex-shrink: 0;
+}
+.score-bar-outer {
+  flex: 1;
+  height: 22px;
+  background: var(--surface);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.score-bar-inner {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 0%;
+}
+.bar-emotion { background: linear-gradient(90deg, var(--accent-warm), #ff9a6c); }
+.bar-neutral { background: linear-gradient(90deg, var(--accent-cool), #7ecfd1); }
+.score-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--text);
+  width: 50px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+/* Word reveal grid */
+.word-reveal-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.word-tag {
+  padding: 0.3rem 0.7rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1.5px solid transparent;
+}
+.tag-hit-e   { background: rgba(255,107,53,0.15); color: var(--accent-warm); border-color: rgba(255,107,53,0.4); }
+.tag-hit-n   { background: rgba(168,218,220,0.12); color: var(--accent-cool); border-color: rgba(168,218,220,0.35); }
+.tag-miss-e  { background: transparent; color: rgba(255,107,53,0.4); border-color: rgba(255,107,53,0.2); text-decoration: line-through; }
+.tag-miss-n  { background: transparent; color: rgba(168,218,220,0.3); border-color: rgba(168,218,220,0.15); text-decoration: line-through; }
+.tag-false   { background: rgba(239,71,111,0.12); color: var(--red); border-color: rgba(239,71,111,0.3); }
+
+.tag-legend { display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.75rem; color: var(--muted); }
+.tag-legend span { display: flex; align-items: center; gap: 0.3rem; }
+.dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot-e { background: var(--accent-warm); }
+.dot-n { background: var(--accent-cool); }
+.dot-r { background: var(--red); }
+
+/* Explain box */
+.explain-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.4rem 1.5rem;
+}
+.explain-box h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.8rem;
+  color: var(--accent-cool);
+}
+.explain-box p {
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.9;
+  margin-bottom: 0.6rem;
+}
+.explain-box p:last-child { margin-bottom: 0; }
+.explain-box strong { color: var(--text); }
+
+/* Further experiments */
+.further-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+}
+.further-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+.further-icon { font-size: 1.4rem; margin-bottom: 0.4rem; }
+.further-title { font-size: 0.85rem; font-weight: 700; margin-bottom: 0.3rem; }
+.further-body { font-size: 0.78rem; color: var(--muted); line-height: 1.6; }
+
+.btn-retry {
+  background: transparent;
+  color: var(--text);
+  border: 1.5px solid var(--border);
+  padding: 0.9rem;
+  width: 100%;
+  font-size: 0.95rem;
+  font-family: 'Shippori Mincho', serif;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+.btn-retry:hover { border-color: var(--accent-warm); color: var(--accent-warm); }
+
+@keyframes up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== INTRO ===== -->
+<div id="screen-intro" class="screen active">
+  <p class="intro-tag">認知心理学 ／ 感情と記憶の実験デモ</p>
+  <h1 class="intro-h1">感情は記憶を<em>強化</em>するか？</h1>
+  <p class="intro-p">
+    2種類の単語リストを順番に見てもらいます。<br>
+    その後、別の課題を挟んでから記憶を測ります。<br>
+    <strong>感情的な言葉と中立的な言葉、どちらが残るか</strong>を体験しましょう。
+  </p>
+  <div class="phase-cards">
+    <div class="phase-card"><span>📖</span><strong>Phase 1</strong> 単語を覚える</div>
+    <div class="phase-card"><span>🔢</span><strong>Phase 2</strong> 暗算で気を散らす</div>
+    <div class="phase-card"><span>🧠</span><strong>Phase 3</strong> 記憶テスト</div>
+  </div>
+  <button class="btn-primary" onclick="startStudy()">実験スタート →</button>
+</div>
+
+<!-- ===== STUDY PHASE ===== -->
+<div id="screen-study" class="screen">
+  <div class="phase-header">
+    <div class="phase-label" id="study-label" style="color: var(--accent-warm)">PHASE 1A ── 感情語リスト</div>
+    <div class="phase-title" id="study-title">次の単語をよく見て覚えてください</div>
+    <div class="phase-sub" id="study-sub">声に出して読むとより効果的です</div>
+  </div>
+
+  <div style="display:flex; align-items:center; gap:0.6rem;" id="badge-wrap">
+    <span class="list-type-badge badge-emotion" id="type-badge">感情語</span>
+  </div>
+
+  <div class="wordlist-wrap">
+    <div class="word-display" id="word-display"></div>
+  </div>
+
+  <div class="progress-bar-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="progress-label" id="progress-label">準備中...</div>
+  </div>
+</div>
+
+<!-- ===== DISTRACT ===== -->
+<div id="screen-distract" class="screen">
+  <div class="phase-header">
+    <div class="phase-label" style="color: var(--accent-gold)">PHASE 2 ── 妨害課題</div>
+    <div class="distract-h">暗算をしてください</div>
+  </div>
+  <p class="distract-p">単語のことは一旦忘れて、計算に集中してください。<br>正解したら次の問題が出ます。</p>
+
+  <div class="math-problem">
+    <div class="math-eq" id="math-eq">?</div>
+    <div class="math-input">
+      <input type="number" id="math-ans" placeholder="答え" onkeydown="if(event.key==='Enter')checkMath()">
+      <button class="btn-primary" style="padding:0.6rem 1.4rem; font-size:0.9rem" onclick="checkMath()">OK</button>
+    </div>
+    <div class="math-feedback" id="math-feedback"></div>
+  </div>
+  <div class="distract-counter" id="distract-counter">あと <span id="math-left">5</span> 問</div>
+</div>
+
+<!-- ===== RECALL ===== -->
+<div id="screen-recall" class="screen">
+  <div class="recall-header">
+    <div class="phase-label" style="color: var(--accent-cool); font-family:'JetBrains Mono',monospace; font-size:0.68rem; letter-spacing:0.2em; text-transform:uppercase; margin-bottom:0.5rem">PHASE 3 ── 記憶テスト</div>
+    <div class="phase-title" style="font-size:clamp(1.3rem,3vw,1.8rem); font-weight:700">覚えていた単語を選んでください</div>
+    <div class="phase-sub" style="font-size:0.9rem; color:var(--muted); margin-top:0.4rem">両方のリストから混ぜています</div>
+  </div>
+
+  <div class="recall-instruction">
+    <strong>先ほど見せた単語</strong>だと思うものをすべて選んでください。<br>
+    <span style="color:var(--accent-warm)">見ていない単語も含まれています</span>—— 確信がなくても選んでOK。
+  </div>
+
+  <div class="recall-grid" id="recall-grid"></div>
+
+  <div class="recall-selected-count" id="recall-count">0 語選択中</div>
+  <button class="btn-submit-recall" id="btn-submit-recall" onclick="submitRecall()">結果を見る →</button>
+</div>
+
+<!-- ===== RESULT ===== -->
+<div id="screen-result" class="screen">
+  <div class="result-header">
+    <div class="result-title">あなたの記憶：<em>感情語</em> vs 中立語</div>
+    <div class="result-sub" id="result-sub-text">結果を集計しました</div>
+  </div>
+
+  <!-- Score bars -->
+  <div>
+    <div class="score-section-title">正答率（実際に見た単語を正しく選んだ割合）</div>
+    <div class="score-bars">
+      <div class="score-row">
+        <div class="score-row-label" style="color:var(--accent-warm)">感情語</div>
+        <div class="score-bar-outer"><div class="score-bar-inner bar-emotion" id="bar-emotion"></div></div>
+        <div class="score-num" id="score-emotion-text">—</div>
+      </div>
+      <div class="score-row">
+        <div class="score-row-label" style="color:var(--accent-cool)">中立語</div>
+        <div class="score-bar-outer"><div class="score-bar-inner bar-neutral" id="bar-neutral"></div></div>
+        <div class="score-num" id="score-neutral-text">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Word breakdown -->
+  <div>
+    <div class="score-section-title">単語ごとの詳細</div>
+    <div class="tag-legend" style="margin-bottom:0.6rem">
+      <span><span class="dot dot-e"></span>感情語・正解</span>
+      <span><span class="dot dot-n"></span>中立語・正解</span>
+      <span>〈取り消し線〉見逃し</span>
+      <span><span class="dot dot-r"></span>見ていない語（誤選択）</span>
+    </div>
+    <div class="word-reveal-grid" id="word-reveal-grid"></div>
+  </div>
+
+  <!-- Explanation -->
+  <div class="explain-box">
+    <h3>🔬 感情と記憶の科学</h3>
+    <p>感情的に強い言葉は、<strong>扁桃体（amygdala）</strong>を活性化させます。扁桃体は海馬と隣接しており、記憶の定着（固定化）に直接影響を与えます。</p>
+    <p>これを<strong>感情強化記憶（Emotional Enhancement of Memory; EEM）</strong>と呼びます。カハートらの研究（Cahill et al., 1994）では、感情的な物語は中立的な物語より有意に多く記憶されることが示されました。</p>
+    <p>日常での応用：<strong>フラッシュバルブ記憶</strong>（大きな出来事をまるで写真のように鮮明に覚えている現象）もこの仕組みによるものです。</p>
+  </div>
+
+  <div>
+    <div class="score-section-title">日常と心理学へのつながり</div>
+    <div class="further-grid">
+      <div class="further-item">
+        <div class="further-icon">🎬</div>
+        <div class="further-title">映画・広告の戦略</div>
+        <div class="further-body">感動的・恐怖・笑いなど感情を動かすコンテンツほど記憶に残る。マーケティングはこれを利用。</div>
+      </div>
+      <div class="further-item">
+        <div class="further-icon">😟</div>
+        <div class="further-title">トラウマ記憶</div>
+        <div class="further-body">強いネガティブ感情は記憶を過度に強固にすることも。PTSDのフラッシュバックのメカニズム。</div>
+      </div>
+      <div class="further-item">
+        <div class="further-icon">📚</div>
+        <div class="further-title">効果的な学習法</div>
+        <div class="further-body">感情と結びつけた学習（物語・体験）は、丸暗記より深く定着する。</div>
+      </div>
+      <div class="further-item">
+        <div class="further-icon">💊</div>
+        <div class="further-title">臨床への応用</div>
+        <div class="further-body">抗不安薬がβ受容体を遮断すると感情記憶の強化が抑制される（Cahill et al., 1994）。</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-retry" onclick="resetAll()">もう一度やってみる</button>
+</div>
+
+<script>
+// ===== WORD LISTS =====
+const EMOTION_WORDS = ['恐怖', '怒り', '愛情', '死', '喜び', '悲しみ', '憎しみ', '希望', '孤独', '恋'];
+const NEUTRAL_WORDS = ['机', '時計', '電車', '窓', '鉛筆', '椅子', '地図', '箱', '廊下', '橋'];
+// Foils (not shown, mixed into recall)
+const FOIL_WORDS    = ['嫉妬', '自転車', '不安', '辞書', '屈辱', '柱', '後悔', '棚'];
+
+const SHOW_EACH_MS = 1800; // ms per word
+const MATH_COUNT   = 5;
+
+let mathLeft = MATH_COUNT;
+let mathAnswer = 0;
+let recallChosen = new Set();
+
+// ===== STUDY PHASE =====
+function startStudy() {
+  showScreen('screen-study');
+  runListPhase('emotion', () => {
+    // brief pause then neutral list
+    document.getElementById('study-label').textContent = 'PHASE 1B ── 中立語リスト';
+    document.getElementById('study-label').style.color = 'var(--accent-cool)';
+    document.getElementById('type-badge').className = 'list-type-badge badge-neutral';
+    document.getElementById('type-badge').textContent = '中立語';
+    runListPhase('neutral', startDistract);
+  });
+}
+
+function runListPhase(type, callback) {
+  const words = type === 'emotion' ? EMOTION_WORDS : NEUTRAL_WORDS;
+  const display = document.getElementById('word-display');
+  const fill = document.getElementById('progress-fill');
+  const label = document.getElementById('progress-label');
+  display.innerHTML = '';
+
+  let i = 0;
+  function showNext() {
+    if (i > 0) {
+      const prev = display.querySelector('.word-item:last-child');
+      if (prev) {
+        prev.style.opacity = '0.2';
+        prev.style.fontSize = '1rem';
+      }
+    }
+    if (i >= words.length) {
+      setTimeout(callback, 600);
+      return;
+    }
+    const el = document.createElement('div');
+    el.className = `word-item ${type}`;
+    el.textContent = words[i];
+    display.appendChild(el);
+    // Keep only last 4 visible for a "flowing" effect
+    const items = display.querySelectorAll('.word-item');
+    if (items.length > 4) items[0].remove();
+    requestAnimationFrame(() => el.classList.add('show'));
+
+    const pct = ((i + 1) / words.length) * 100;
+    fill.style.width = pct + '%';
+    label.textContent = `${i + 1} / ${words.length} 語`;
+
+    i++;
+    setTimeout(showNext, SHOW_EACH_MS);
+  }
+  showNext();
+}
+
+// ===== DISTRACT PHASE =====
+function startDistract() {
+  mathLeft = MATH_COUNT;
+  document.getElementById('math-left').textContent = mathLeft;
+  showScreen('screen-distract');
+  newMathProblem();
+}
+
+function newMathProblem() {
+  const a = Math.floor(Math.random() * 15) + 10;
+  const b = Math.floor(Math.random() * 15) + 10;
+  const c = Math.floor(Math.random() * 9) + 2;
+  const ops = ['+', '-', '×'];
+  const op = ops[Math.floor(Math.random() * 2)];
+  if (op === '+') mathAnswer = a + b;
+  else if (op === '-') mathAnswer = a - b;
+  else mathAnswer = a * c;
+  const displayA = op === '×' ? a : a;
+  const displayB = op === '×' ? c : b;
+  document.getElementById('math-eq').textContent = `${displayA} ${op} ${displayB} = ?`;
+  document.getElementById('math-ans').value = '';
+  document.getElementById('math-feedback').textContent = '';
+  document.getElementById('math-feedback').className = 'math-feedback';
+  setTimeout(() => document.getElementById('math-ans').focus(), 100);
+}
+
+function checkMath() {
+  const val = parseInt(document.getElementById('math-ans').value);
+  const fb = document.getElementById('math-feedback');
+  if (isNaN(val)) return;
+  if (val === mathAnswer) {
+    fb.textContent = '✓ 正解！';
+    fb.className = 'math-feedback ok';
+    mathLeft--;
+    document.getElementById('math-left').textContent = mathLeft;
+    if (mathLeft <= 0) {
+      setTimeout(startRecall, 700);
+    } else {
+      setTimeout(newMathProblem, 600);
+    }
+  } else {
+    fb.textContent = `✗ 不正解。もう一度。`;
+    fb.className = 'math-feedback ng';
+    document.getElementById('math-ans').value = '';
+    document.getElementById('math-ans').focus();
+  }
+}
+
+// ===== RECALL PHASE =====
+function startRecall() {
+  recallChosen.clear();
+  // Build shuffled pool: all 20 studied + 8 foils
+  const allWords = [
+    ...EMOTION_WORDS.map(w => ({ w, type: 'emotion' })),
+    ...NEUTRAL_WORDS.map(w => ({ w, type: 'neutral' })),
+    ...FOIL_WORDS.map(w => ({ w, type: 'foil' })),
+  ];
+  // shuffle
+  for (let i = allWords.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [allWords[i], allWords[j]] = [allWords[j], allWords[i]];
+  }
+
+  const grid = document.getElementById('recall-grid');
+  grid.innerHTML = '';
+  allWords.forEach(item => {
+    const btn = document.createElement('button');
+    btn.className = 'recall-btn';
+    btn.textContent = item.w;
+    btn.dataset.word = item.w;
+    btn.dataset.type = item.type;
+    btn.onclick = () => {
+      if (btn.classList.contains('chosen')) {
+        btn.classList.remove('chosen');
+        recallChosen.delete(item.w);
+      } else {
+        btn.classList.add('chosen');
+        recallChosen.add(item.w);
+      }
+      updateRecallCount();
+    };
+    grid.appendChild(btn);
+  });
+  updateRecallCount();
+  showScreen('screen-recall');
+}
+
+function updateRecallCount() {
+  const n = recallChosen.size;
+  document.getElementById('recall-count').textContent = `${n} 語選択中`;
+  const btn = document.getElementById('btn-submit-recall');
+  if (n > 0) btn.classList.add('ready');
+  else btn.classList.remove('ready');
+}
+
+// ===== RESULT =====
+function submitRecall() {
+  // Calculate scores
+  const emotionHits   = EMOTION_WORDS.filter(w => recallChosen.has(w));
+  const neutralHits   = NEUTRAL_WORDS.filter(w => recallChosen.has(w));
+  const falseAlarms   = [...recallChosen].filter(w => FOIL_WORDS.includes(w));
+  const emotionMisses = EMOTION_WORDS.filter(w => !recallChosen.has(w));
+  const neutralMisses = NEUTRAL_WORDS.filter(w => !recallChosen.has(w));
+
+  const emotionPct = Math.round((emotionHits.length / EMOTION_WORDS.length) * 100);
+  const neutralPct = Math.round((neutralHits.length / NEUTRAL_WORDS.length) * 100);
+
+  showScreen('screen-result');
+
+  // Animate bars after paint
+  setTimeout(() => {
+    document.getElementById('bar-emotion').style.width = emotionPct + '%';
+    document.getElementById('bar-neutral').style.width = neutralPct + '%';
+  }, 100);
+
+  document.getElementById('score-emotion-text').textContent = `${emotionHits.length}/${EMOTION_WORDS.length}語 (${emotionPct}%)`;
+  document.getElementById('score-neutral-text').textContent = `${neutralHits.length}/${NEUTRAL_WORDS.length}語 (${neutralPct}%)`;
+
+  // Result summary
+  const diff = emotionPct - neutralPct;
+  let subText = '';
+  if (diff > 20) subText = '感情語を大幅に多く記憶していました！扁桃体が記憶の定着を強化した典型的な結果です。';
+  else if (diff > 5) subText = '感情語の方が少し多く記憶されていました。感情強化記憶の効果が見られます。';
+  else if (diff < -5) subText = '今回は中立語の方が多く記憶されていました。集中の仕方によって結果が変わることもあります。';
+  else subText = '感情語と中立語がほぼ同じ割合で記憶されていました。もう一度試してみてください。';
+  document.getElementById('result-sub-text').textContent = subText;
+
+  // Word tags
+  const revealGrid = document.getElementById('word-reveal-grid');
+  revealGrid.innerHTML = '';
+
+  const addTag = (word, cls) => {
+    const span = document.createElement('span');
+    span.className = `word-tag ${cls}`;
+    span.textContent = word;
+    revealGrid.appendChild(span);
+  };
+
+  emotionHits.forEach(w => addTag(w, 'tag-hit-e'));
+  emotionMisses.forEach(w => addTag(w, 'tag-miss-e'));
+  neutralHits.forEach(w => addTag(w, 'tag-hit-n'));
+  neutralMisses.forEach(w => addTag(w, 'tag-miss-n'));
+  falseAlarms.forEach(w => addTag(w, 'tag-false'));
+}
+
+// ===== HELPERS =====
+function resetAll() {
+  recallChosen.clear();
+  document.getElementById('study-label').textContent = 'PHASE 1A ── 感情語リスト';
+  document.getElementById('study-label').style.color = 'var(--accent-warm)';
+  document.getElementById('type-badge').className = 'list-type-badge badge-emotion';
+  document.getElementById('type-badge').textContent = '感情語';
+  showScreen('screen-intro');
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = 'none';
+  });
+  const el = document.getElementById(id);
+  el.classList.add('active');
+  el.style.display = id === 'screen-intro' ? 'flex' : (
+    ['screen-study', 'screen-distract'].includes(id) ? 'flex' : 'flex'
+  );
+  window.scrollTo(0, 0);
+}
+
+// Init
+document.querySelectorAll('.screen').forEach(s => { s.style.display = 'none'; });
+document.getElementById('screen-intro').style.display = 'flex';
+</script>
+</body>
+</html>
