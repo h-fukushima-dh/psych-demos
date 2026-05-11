@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>確証バイアス体験 — ウェイソン選択課題</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;700&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #F7F3EE;
+  --ink: #1C1A17;
+  --muted: #8C8070;
+  --card: #FFFFFF;
+  --accent: #C44B2B;
+  --accent2: #2B6CB0;
+  --gold: #B7860B;
+  --green: #276749;
+  --border: #DDD5C8;
+  --surface: #EDE8E1;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Serif JP', serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* grain overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.6;
+}
+
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* ===== INTRO ===== */
+#screen-intro {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  gap: 0;
+}
+
+.intro-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 2rem;
+  opacity: 0;
+  animation: riseIn 0.7s 0.1s forwards;
+}
+
+.intro-title {
+  font-size: clamp(2rem, 6vw, 3.8rem);
+  font-weight: 700;
+  line-height: 1.15;
+  margin-bottom: 1.5rem;
+  opacity: 0;
+  animation: riseIn 0.7s 0.25s forwards;
+}
+
+.intro-title em {
+  font-style: normal;
+  color: var(--accent);
+  position: relative;
+}
+
+.intro-title em::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: -3px;
+  height: 3px;
+  background: var(--accent);
+  opacity: 0.35;
+}
+
+.intro-sub {
+  max-width: 520px;
+  font-size: 1rem;
+  line-height: 2;
+  color: var(--muted);
+  margin-bottom: 2.5rem;
+  opacity: 0;
+  animation: riseIn 0.7s 0.4s forwards;
+}
+
+.rule-box {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 1.6rem 2rem;
+  max-width: 520px;
+  width: 100%;
+  margin-bottom: 2.5rem;
+  opacity: 0;
+  animation: riseIn 0.7s 0.55s forwards;
+}
+
+.rule-box-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 0.8rem;
+}
+
+.rule-text {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+.rule-text span { color: var(--accent2); }
+
+.btn-start {
+  background: var(--ink);
+  color: var(--bg);
+  border: none;
+  padding: 1rem 3rem;
+  font-size: 1rem;
+  font-family: 'Noto Serif JP', serif;
+  font-weight: 700;
+  border-radius: 3px;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+  opacity: 0;
+  animation: riseIn 0.7s 0.7s forwards;
+}
+.btn-start:hover { background: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(196,75,43,0.25); }
+
+/* ===== TASK ===== */
+#screen-task {
+  min-height: 100vh;
+  padding: 2.5rem 1.5rem;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.task-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+.task-step {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 0.6rem;
+}
+.task-q {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.6;
+  margin-bottom: 0.5rem;
+}
+.task-hint {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+/* Rule reminder */
+.rule-reminder {
+  background: var(--surface);
+  border-left: 3px solid var(--accent2);
+  padding: 0.8rem 1.2rem;
+  border-radius: 0 4px 4px 0;
+  font-size: 0.9rem;
+  margin-bottom: 2rem;
+  color: var(--ink);
+}
+.rule-reminder strong { color: var(--accent2); }
+
+/* Cards grid */
+.cards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 500px) {
+  .cards-grid { grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+}
+
+.card-btn {
+  position: relative;
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  padding: 1.8rem 1rem;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s, box-shadow 0.15s;
+  text-align: center;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  aspect-ratio: 3/2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.card-btn:hover:not(.selected):not(.disabled) {
+  border-color: var(--ink);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(28,26,23,0.12);
+}
+
+.card-btn.selected {
+  border-color: var(--accent);
+  background: #FDF5F2;
+  box-shadow: 0 0 0 3px rgba(196,75,43,0.15);
+}
+
+.card-btn.disabled { opacity: 0.4; cursor: not-allowed; }
+
+.card-face {
+  font-family: 'DM Mono', monospace;
+  font-size: clamp(1.8rem, 5vw, 2.8rem);
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.card-label {
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.check-mark {
+  position: absolute;
+  top: 0.5rem; right: 0.6rem;
+  font-size: 1.1rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.card-btn.selected .check-mark { opacity: 1; }
+
+/* Selected summary */
+.selected-summary {
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: 1.5rem;
+  min-height: 1.2em;
+}
+
+.btn-submit {
+  display: block;
+  width: 100%;
+  background: var(--ink);
+  color: var(--bg);
+  border: none;
+  padding: 1rem;
+  font-size: 1rem;
+  font-family: 'Noto Serif JP', serif;
+  font-weight: 700;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  opacity: 0.3;
+  pointer-events: none;
+}
+.btn-submit.ready { opacity: 1; pointer-events: all; }
+.btn-submit.ready:hover { background: var(--accent); transform: translateY(-1px); }
+
+/* ===== RESULT ===== */
+#screen-result {
+  min-height: 100vh;
+  padding: 2.5rem 1.5rem;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.result-header { text-align: center; margin-bottom: 2.5rem; }
+.result-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 0.6rem;
+}
+
+.result-verdict {
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+.verdict-correct { color: var(--green); }
+.verdict-wrong { color: var(--accent); }
+.verdict-partial { color: var(--gold); }
+
+.result-sub { font-size: 0.95rem; color: var(--muted); }
+
+/* Answer cards */
+.answer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem;
+  margin-bottom: 2rem;
+}
+
+.answer-card {
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  padding: 1.2rem;
+  text-align: center;
+}
+
+.answer-card .face {
+  font-family: 'DM Mono', monospace;
+  font-size: 2rem;
+  margin-bottom: 0.4rem;
+}
+
+.answer-card .a-label {
+  font-size: 0.7rem;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.status-tag {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 2px;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+.tag-must    { background: #D4EDDA; color: #155724; }
+.tag-skip    { background: #E2E8F0; color: #4A5568; }
+.tag-wrong   { background: #FDECEA; color: #721C24; }
+.tag-missed  { background: #FFF3CD; color: #856404; }
+.tag-user    { background: #E8F4FD; color: var(--accent2); }
+
+.answer-card .reason {
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-top: 0.5rem;
+}
+
+/* Explanation box */
+.explain-box {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.explain-box h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.8rem;
+  color: var(--ink);
+}
+
+.explain-box p {
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.9;
+  margin-bottom: 0.6rem;
+}
+.explain-box p:last-child { margin-bottom: 0; }
+.explain-box strong { color: var(--ink); }
+
+/* Stats row */
+.stats-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+.stat-box {
+  flex: 1;
+  min-width: 120px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem;
+  text-align: center;
+}
+.stat-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 1.8rem;
+  font-weight: 500;
+  color: var(--accent);
+  display: block;
+}
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
+/* Real life examples */
+.examples-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem;
+  margin-bottom: 2rem;
+}
+.example-item {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem;
+}
+.example-icon { font-size: 1.4rem; margin-bottom: 0.4rem; }
+.example-title { font-size: 0.85rem; font-weight: 700; margin-bottom: 0.3rem; }
+.example-body { font-size: 0.78rem; color: var(--muted); line-height: 1.6; }
+
+.btn-retry {
+  display: block;
+  width: 100%;
+  background: transparent;
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  padding: 0.9rem;
+  font-size: 0.95rem;
+  font-family: 'Noto Serif JP', serif;
+  font-weight: 700;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  margin-bottom: 0.6rem;
+}
+.btn-retry:hover { background: var(--ink); color: var(--bg); }
+
+/* Variant selector */
+.variant-selector {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+.variant-btn {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  padding: 0.35rem 1rem;
+  font-size: 0.8rem;
+  font-family: 'Noto Serif JP', serif;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  color: var(--muted);
+}
+.variant-btn.active, .variant-btn:hover { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== INTRO ===== -->
+<div id="screen-intro" class="screen active">
+  <p class="intro-badge">社会認知心理学 ／ 確証バイアス体験</p>
+  <h1 class="intro-title">あなたは<em>何を</em>確かめますか？</h1>
+  <p class="intro-sub">
+    4枚のカードを使った古典的な推論問題です。<br>
+    ルールが正しいかを確かめるために、<strong>どのカードをめくるべきか</strong>を考えてください。
+  </p>
+
+  <div class="rule-box">
+    <div class="rule-box-label">ルール（規則）</div>
+    <div class="rule-text">
+      カードの片面に<span>母音</span>があれば、<br>
+      もう片面には<span>偶数</span>がある
+    </div>
+  </div>
+
+  <button class="btn-start" onclick="showTask()">問題に挑戦する →</button>
+</div>
+
+<!-- ===== TASK ===== -->
+<div id="screen-task" class="screen">
+  <div id="task-inner">
+    <div class="task-header">
+      <div class="task-step" id="task-variant-label">バリアント A — 抽象版</div>
+      <div class="task-q">ルールが<strong>破られているカード</strong>を見つけるために、<br>めくる必要があるカードはどれ？</div>
+      <div class="task-hint">必要なカードをすべて選んでください（複数可）</div>
+    </div>
+
+    <div class="rule-reminder">
+      ルール：<strong>片面に母音 → もう片面は偶数</strong>
+    </div>
+
+    <div class="variant-selector">
+      <button class="variant-btn active" onclick="setVariant(0, this)">抽象版</button>
+      <button class="variant-btn" onclick="setVariant(1, this)">日常版</button>
+    </div>
+
+    <div class="cards-grid" id="cards-grid"></div>
+
+    <div class="selected-summary" id="selected-summary">カードを選んでください</div>
+    <button class="btn-submit" id="btn-submit" onclick="submitAnswer()">答えを確認する →</button>
+  </div>
+</div>
+
+<!-- ===== RESULT ===== -->
+<div id="screen-result" class="screen">
+  <div class="result-header">
+    <div class="result-badge">結果発表</div>
+    <div class="result-verdict" id="result-verdict">—</div>
+    <div class="result-sub" id="result-sub">—</div>
+  </div>
+
+  <div class="answer-grid" id="answer-grid"></div>
+
+  <div class="explain-box">
+    <h3>🧠 なぜ多くの人が間違えるのか？</h3>
+    <p>
+      正解は <strong id="correct-answer-text">—</strong> の2枚です。多くの人は「E」と「4」を選びます。
+      「4」をめくっても、<strong>ルールが正しいことの証拠にしかなりません</strong>（4の裏が母音でも、母音でなくてもルール違反ではない）。
+    </p>
+    <p>
+      これが<strong>確証バイアス</strong>です。人は「ルールが正しい」ことを支持する証拠を探し、<strong>「ルールが破られている」証拠を探すのを避ける</strong>傾向があります。
+    </p>
+    <p>
+      「7」をめくることが重要なのに見落とすのは、「子音の裏が偶数」であれば<strong>ルール違反の証拠になる</strong>からです。
+    </p>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-box">
+      <span class="stat-num">約10%</span>
+      <div class="stat-label">が正解する<br>（初回挑戦時）</div>
+    </div>
+    <div class="stat-box">
+      <span class="stat-num">約46%</span>
+      <div class="stat-label">が「E と 4」<br>を選ぶ</div>
+    </div>
+    <div class="stat-box">
+      <span class="stat-num">1966年</span>
+      <div class="stat-label">Wason が<br>発表した課題</div>
+    </div>
+  </div>
+
+  <div class="examples-grid">
+    <div class="example-item">
+      <div class="example-icon">🔍</div>
+      <div class="example-title">SNSでの情報収集</div>
+      <div class="example-body">自分の意見に賛成する記事ばかり探して、反論を見ようとしない。</div>
+    </div>
+    <div class="example-item">
+      <div class="example-icon">⚖️</div>
+      <div class="example-title">裁判・判断</div>
+      <div class="example-body">「犯人だ」と思うと有罪の証拠ばかり集め、無罪の証拠を軽視する。</div>
+    </div>
+    <div class="example-item">
+      <div class="example-icon">💊</div>
+      <div class="example-title">医療診断</div>
+      <div class="example-body">最初の診断を支持する検査だけ行い、別の病気の可能性を検討しない。</div>
+    </div>
+    <div class="example-item">
+      <div class="example-icon">📊</div>
+      <div class="example-title">ビジネス判断</div>
+      <div class="example-body">成功した施策の証拠を集め、失敗の要因や反証データを無視する。</div>
+    </div>
+  </div>
+
+  <button class="btn-retry" onclick="showTask()">もう一度やってみる</button>
+  <button class="btn-retry" style="border-color:var(--muted);color:var(--muted)" onclick="resetAll()">最初に戻る</button>
+</div>
+
+<script>
+// ===== VARIANTS =====
+const VARIANTS = [
+  {
+    label: 'バリアント A — 抽象版',
+    ruleDesc: '片面に母音 → もう片面は偶数',
+    cards: [
+      { face: 'E', back: '4',  type: 'vowel',    hint: '表：母音' },
+      { face: 'K', back: '7',  type: 'consonant', hint: '表：子音' },
+      { face: '4', back: 'E',  type: 'even',      hint: '表：偶数' },
+      { face: '7', back: 'K',  type: 'odd',       hint: '表：奇数' },
+    ],
+    // must-flip cards (indices)
+    mustFlip: [0, 3], // E and 7
+    explanations: [
+      { must: true,  reason: '母音の裏が奇数ならルール違反！必ずめくる必要あり。' },
+      { must: false, reason: '子音の裏が何でもルール違反にならない。めくる必要なし。' },
+      { must: false, reason: '偶数の裏が何でもルール違反にならない（母音でなくてもOK）。不要。' },
+      { must: true,  reason: '奇数の裏に母音があればルール違反！必ずめくる必要あり。' },
+    ],
+    correctText: '「E」と「7」',
+  },
+  {
+    label: 'バリアント B — 日常版（飲酒）',
+    ruleDesc: 'お酒を飲んでいる人は、20歳以上でなければならない',
+    cards: [
+      { face: '🍺', back: '17歳', type: 'drink',    hint: '表：飲酒中' },
+      { face: '🥤', back: '25歳', type: 'noDrink',  hint: '表：飲んでいない' },
+      { face: '22歳', back: '🍺', type: 'adult',    hint: '表：成人' },
+      { face: '16歳', back: '🥤', type: 'minor',    hint: '表：未成年' },
+    ],
+    mustFlip: [0, 3],
+    explanations: [
+      { must: true,  reason: 'お酒を飲んでいる。裏が未成年ならルール違反！確認が必要。' },
+      { must: false, reason: '飲んでいないのでルールは関係なし。めくらなくてOK。' },
+      { must: false, reason: '成人はお酒を飲んでいてもいなくても問題なし。不要。' },
+      { must: true,  reason: '未成年！裏でお酒を飲んでいればルール違反。確認が必要。' },
+    ],
+    correctText: '「🍺（飲酒中）」と「16歳（未成年）」',
+  },
+];
+
+let currentVariant = 0;
+let selected = new Set();
+
+function setVariant(idx, btn) {
+  currentVariant = idx;
+  document.querySelectorAll('.variant-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selected.clear();
+  renderCards();
+  updateSummary();
+}
+
+function renderCards() {
+  const v = VARIANTS[currentVariant];
+  document.getElementById('task-variant-label').textContent = v.label;
+
+  // Update rule reminder
+  document.querySelector('.rule-reminder').innerHTML =
+    `ルール：<strong>${v.ruleDesc}</strong>`;
+
+  const grid = document.getElementById('cards-grid');
+  grid.innerHTML = '';
+
+  v.cards.forEach((card, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'card-btn';
+    btn.onclick = () => toggleCard(i, btn);
+    btn.innerHTML = `
+      <span class="check-mark">✓</span>
+      <div class="card-face">${card.face}</div>
+      <div class="card-label">${card.hint}</div>
+    `;
+    if (selected.has(i)) btn.classList.add('selected');
+    grid.appendChild(btn);
+  });
+}
+
+function toggleCard(i, btn) {
+  if (selected.has(i)) {
+    selected.delete(i);
+    btn.classList.remove('selected');
+  } else {
+    selected.add(i);
+    btn.classList.add('selected');
+  }
+  updateSummary();
+}
+
+function updateSummary() {
+  const v = VARIANTS[currentVariant];
+  const sumEl = document.getElementById('selected-summary');
+  const subBtn = document.getElementById('btn-submit');
+
+  if (selected.size === 0) {
+    sumEl.textContent = 'カードを選んでください';
+    subBtn.classList.remove('ready');
+  } else {
+    const names = [...selected].map(i => v.cards[i].face).join('、');
+    sumEl.textContent = `選択中：${names}`;
+    subBtn.classList.add('ready');
+  }
+}
+
+function submitAnswer() {
+  if (selected.size === 0) return;
+  const v = VARIANTS[currentVariant];
+
+  // Verdict
+  const mustSet = new Set(v.mustFlip);
+  const isCorrect =
+    v.mustFlip.every(i => selected.has(i)) &&
+    [...selected].every(i => mustSet.has(i));
+  const hasMust = v.mustFlip.some(i => selected.has(i));
+  const hasExtra = [...selected].some(i => !mustSet.has(i));
+
+  let verdictClass, verdictText, subText;
+  if (isCorrect) {
+    verdictClass = 'verdict-correct';
+    verdictText = '🎉 正解！';
+    subText = '確証バイアスを乗り越えました。論理的思考力が高いです！';
+  } else if (hasMust && !hasExtra) {
+    verdictClass = 'verdict-partial';
+    verdictText = '惜しい！半分正解';
+    subText = `必要なカードを一部見逃しています。正解は ${v.correctText} の2枚です。`;
+  } else {
+    verdictClass = 'verdict-wrong';
+    verdictText = '不正解';
+    subText = `正解は ${v.correctText} の2枚です。確証バイアスが働いていたかもしれません。`;
+  }
+
+  document.getElementById('result-verdict').className = `result-verdict ${verdictClass}`;
+  document.getElementById('result-verdict').textContent = verdictText;
+  document.getElementById('result-sub').textContent = subText;
+  document.getElementById('correct-answer-text').textContent = v.correctText;
+
+  // Explanation paragraph update for variant B
+  if (currentVariant === 1) {
+    document.querySelector('.explain-box p:first-of-type').innerHTML =
+      `正解は <strong>${v.correctText}</strong> の2枚です。「🍺（飲酒中）」は裏が未成年なら違反。「16歳」は裏でお酒を飲んでいれば違反です。<strong>成人は飲んでいても問題なく、飲んでいない人もルール対象外</strong>です。`;
+  } else {
+    document.querySelector('.explain-box p:first-of-type').innerHTML =
+      `正解は <strong>${v.correctText}</strong> の2枚です。多くの人は「E」と「4」を選びます。「4」をめくっても、<strong>ルールが正しいことの証拠にしかなりません</strong>（4の裏が母音でも、母音でなくてもルール違反ではない）。`;
+  }
+
+  // Answer cards
+  const grid = document.getElementById('answer-grid');
+  grid.innerHTML = '';
+  v.cards.forEach((card, i) => {
+    const isMust    = mustSet.has(i);
+    const wasChosen = selected.has(i);
+    let tagClass, tagText;
+    if (isMust && wasChosen)      { tagClass = 'tag-must';   tagText = '✓ 正解・必要'; }
+    else if (isMust && !wasChosen){ tagClass = 'tag-missed'; tagText = '△ 見逃し'; }
+    else if (!isMust && wasChosen){ tagClass = 'tag-wrong';  tagText = '✗ 不要'; }
+    else                          { tagClass = 'tag-skip';   tagText = '− 不要（スキップOK）'; }
+
+    const div = document.createElement('div');
+    div.className = 'answer-card';
+    div.innerHTML = `
+      <div class="face">${card.face}</div>
+      <div class="a-label">${card.hint}</div>
+      <span class="status-tag ${tagClass}">${tagText}</span>
+      <div class="reason">${v.explanations[i].reason}</div>
+    `;
+    grid.appendChild(div);
+  });
+
+  showScreen('screen-result');
+}
+
+function showTask() {
+  renderCards();
+  updateSummary();
+  showScreen('screen-task');
+}
+
+function resetAll() {
+  selected.clear();
+  currentVariant = 0;
+  document.querySelectorAll('.variant-btn').forEach((b, i) => {
+    b.classList.toggle('active', i === 0);
+  });
+  showScreen('screen-intro');
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = 'none';
+  });
+  const el = document.getElementById(id);
+  el.classList.add('active');
+  el.style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+// Init
+renderCards();
+updateSummary();
+document.querySelectorAll('.screen').forEach(s => { s.style.display = 'none'; });
+document.getElementById('screen-intro').style.display = 'flex';
+</script>
+</body>
+</html>
