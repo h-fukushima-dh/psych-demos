@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>選択的注意の実験 — 見えないゴリラ</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700;900&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0a0a12;
+    --surface: #12121e;
+    --card: #1a1a2e;
+    --accent: #e63946;
+    --accent2: #4cc9f0;
+    --accent3: #f0a500;
+    --text: #f0f0f0;
+    --muted: #888aaa;
+    --white-team: #f0f0f0;
+    --black-team: #2a2a3e;
+    --black-team-border: #4a4a6e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ===== SCREENS ===== */
+  .screen {
+    display: none;
+    min-height: 100vh;
+    padding: 2rem;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .screen.active { display: flex; }
+
+  /* ===== INTRO SCREEN ===== */
+  #screen-intro {
+    background: radial-gradient(ellipse at 30% 40%, #1a0a2e 0%, var(--bg) 60%);
+    text-align: center;
+    gap: 2rem;
+  }
+
+  .badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: var(--accent2);
+    text-transform: uppercase;
+    border: 1px solid var(--accent2);
+    padding: 0.4rem 1rem;
+    border-radius: 2px;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.2s forwards;
+  }
+
+  h1.title {
+    font-size: clamp(2.2rem, 6vw, 4rem);
+    font-weight: 900;
+    line-height: 1.1;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.4s forwards;
+  }
+
+  h1.title span { color: var(--accent); }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 1rem;
+    max-width: 500px;
+    line-height: 1.8;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.6s forwards;
+  }
+
+  .ref {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    opacity: 0;
+    animation: fadeUp 0.6s 0.7s forwards;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 1rem 2.5rem;
+    font-size: 1.1rem;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 700;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.9s forwards;
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(230,57,70,0.4); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--accent2);
+    border: 1px solid var(--accent2);
+    padding: 0.75rem 2rem;
+    font-size: 0.95rem;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 400;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  .btn-secondary:hover { background: var(--accent2); color: var(--bg); }
+
+  /* ===== TASK SCREEN ===== */
+  #screen-task {
+    background: var(--bg);
+    gap: 1.5rem;
+    justify-content: flex-start;
+    padding-top: 1.5rem;
+  }
+
+  .task-header {
+    text-align: center;
+    width: 100%;
+  }
+  .task-header h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.3rem; }
+  .task-header p { color: var(--muted); font-size: 0.9rem; }
+
+  /* Arena */
+  #arena {
+    position: relative;
+    width: min(560px, 95vw);
+    height: min(420px, 70vw);
+    background: var(--card);
+    border: 1px solid #2a2a4a;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  /* Players */
+  .player {
+    position: absolute;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 900;
+    transition: none;
+    user-select: none;
+    will-change: transform;
+  }
+  .player.white {
+    background: var(--white-team);
+    color: var(--bg);
+    border: 3px solid #fff;
+  }
+  .player.black {
+    background: var(--black-team);
+    color: #fff;
+    border: 3px solid var(--black-team-border);
+  }
+
+  /* Ball */
+  #ball {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #fff 0%, #bbb 60%, #888 100%);
+    border: 2px solid #ccc;
+    z-index: 5;
+    will-change: transform;
+  }
+
+  /* Gorilla */
+  #gorilla {
+    position: absolute;
+    font-size: 3.2rem;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    filter: drop-shadow(0 0 8px rgba(0,0,0,0.8));
+  }
+
+  /* Counter */
+  .counter-bar {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .counter-box {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    background: var(--card);
+    border: 1px solid #2a2a4a;
+    border-radius: 6px;
+    padding: 0.6rem 1.2rem;
+  }
+  .counter-dot {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .counter-dot.white { background: #f0f0f0; border: 2px solid #ccc; }
+  .counter-dot.black { background: #2a2a3e; border: 2px solid #4a4a6e; }
+
+  .counter-label { font-size: 0.8rem; color: var(--muted); }
+  .counter-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.8rem;
+    font-weight: 700;
+    min-width: 2.5ch;
+    color: var(--text);
+  }
+
+  /* Timer */
+  .timer-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+  .timer-label { color: var(--muted); font-size: 0.85rem; }
+  #timer-display {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent3);
+    min-width: 2.5ch;
+  }
+
+  /* ===== ANSWER SCREEN ===== */
+  #screen-answer {
+    background: radial-gradient(ellipse at 70% 30%, #0e1a1a 0%, var(--bg) 60%);
+    gap: 1.8rem;
+    text-align: center;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  #screen-answer h2 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 900; }
+  #screen-answer h2 span { color: var(--accent2); }
+
+  .your-count {
+    background: var(--card);
+    border: 1px solid #2a2a4a;
+    border-radius: 8px;
+    padding: 1.2rem 2rem;
+    font-size: 1.05rem;
+    line-height: 1.9;
+  }
+  .your-count strong { color: var(--accent3); font-size: 1.2rem; }
+
+  .gorilla-reveal {
+    font-size: 4rem;
+    animation: pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  .reveal-text {
+    font-size: 1rem;
+    line-height: 1.9;
+    color: var(--text);
+    max-width: 500px;
+  }
+
+  .reveal-text em { color: var(--accent2); font-style: normal; font-weight: 700; }
+
+  /* ===== EXPLAIN SCREEN ===== */
+  #screen-explain {
+    background: var(--bg);
+    gap: 2rem;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  #screen-explain h2 { font-size: clamp(1.6rem, 3.5vw, 2.2rem); font-weight: 900; text-align: center; }
+  #screen-explain h2 span { color: var(--accent); }
+
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .info-card {
+    background: var(--card);
+    border: 1px solid #2a2a4a;
+    border-radius: 8px;
+    padding: 1.2rem 1.4rem;
+  }
+  .info-card .card-icon { font-size: 1.8rem; margin-bottom: 0.5rem; }
+  .info-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--accent2); }
+  .info-card p { font-size: 0.88rem; color: #bbbddd; line-height: 1.8; }
+
+  .quote-box {
+    background: linear-gradient(135deg, #1a1a3e, #12122a);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0;
+    padding: 1.2rem 1.5rem;
+    font-size: 0.95rem;
+    line-height: 1.9;
+    color: #d0d2f0;
+    width: 100%;
+  }
+
+  .btn-row { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+
+  /* ===== ANIMATIONS ===== */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pop {
+    from { transform: scale(0); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+
+  /* ===== COUNT INPUT ===== */
+  .count-input-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+  }
+  .count-input-wrap label { font-size: 1rem; color: var(--muted); }
+  .count-input-wrap input {
+    width: 120px;
+    text-align: center;
+    font-size: 2rem;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    background: var(--card);
+    color: var(--text);
+    border: 2px solid #3a3a6a;
+    border-radius: 6px;
+    padding: 0.5rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .count-input-wrap input:focus { border-color: var(--accent2); }
+</style>
+</head>
+<body>
+
+<!-- ===== INTRO ===== -->
+<div id="screen-intro" class="screen active">
+  <div class="badge">認知心理学 実験デモ</div>
+  <h1 class="title">あなたは<span>何回</span>数えられる？</h1>
+  <p class="subtitle">
+    白いシャツを着た人たちがボールをパスします。<br>
+    <strong>白チームのパス回数だけ</strong>を、心の中で数えてください。<br>
+    黒チームのパスは数えなくてOKです。
+  </p>
+  <p class="ref">Based on: Simons & Chabris (1999) Gorillas in our midst</p>
+  <button class="btn-primary" onclick="startTask()">実験スタート →</button>
+</div>
+
+<!-- ===== TASK ===== -->
+<div id="screen-task" class="screen">
+  <div class="task-header">
+    <h2>⚪ 白チームのパス回数を数えよう</h2>
+    <p>集中して！黒チームは無視してください</p>
+  </div>
+
+  <div id="arena">
+    <!-- players injected by JS -->
+    <div id="ball"></div>
+    <div id="gorilla">🦍</div>
+  </div>
+
+  <div class="counter-bar">
+    <div class="counter-box">
+      <div class="counter-dot white"></div>
+      <div>
+        <div class="counter-label">白チーム パス数</div>
+        <div class="counter-num" id="white-count">0</div>
+      </div>
+    </div>
+    <div class="counter-box">
+      <div class="counter-dot black"></div>
+      <div>
+        <div class="counter-label">黒チーム パス数</div>
+        <div class="counter-num" id="black-count">0</div>
+      </div>
+    </div>
+    <div class="counter-box">
+      <div class="timer-label">残り時間</div>
+      <div id="timer-display">30</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ANSWER ===== -->
+<div id="screen-answer" class="screen">
+  <h2>実験終了！<br><span>何回数えた？</span></h2>
+
+  <div class="count-input-wrap">
+    <label>白チームのパス回数を入力してください</label>
+    <input type="number" id="user-count" min="0" max="99" value="" placeholder="??">
+  </div>
+
+  <div class="your-count" id="count-reveal" style="display:none">
+    実際の白チームのパス数: <strong id="actual-white">—</strong> 回<br>
+    あなたの回答: <strong id="user-answer">—</strong> 回
+  </div>
+
+  <button class="btn-primary" onclick="submitCount()">答えを見る</button>
+</div>
+
+<!-- ===== EXPLAIN ===== -->
+<div id="screen-explain" class="screen">
+  <h2>ゴリラが<span>見えましたか？</span></h2>
+
+  <div class="gorilla-reveal">🦍</div>
+
+  <p class="reveal-text">
+    実はこの実験中、コートを横切る<em>ゴリラ</em>が現れていました。<br>
+    多くの人がパスを数えることに集中するあまり、<em>まったく気づかない</em>のです。
+  </p>
+
+  <div class="cards-grid">
+    <div class="info-card">
+      <div class="card-icon">🔦</div>
+      <h3>選択的注意</h3>
+      <p>人は一度に処理できる情報量に限界があります。特定のことに注意を向けると、それ以外の目立つものさえ見えなくなります。</p>
+    </div>
+    <div class="info-card">
+      <div class="card-icon">🧠</div>
+      <h3>非注意性盲目</h3>
+      <p>「見ているのに見えていない」現象。目に映っていても意識に上らなければ存在しないも同然です。</p>
+    </div>
+    <div class="info-card">
+      <div class="card-icon">🚗</div>
+      <h3>日常での影響</h3>
+      <p>スマホを見ながらの運転・歩行中に事故が起きる仕組みも同じ。注意の限界は安全に直結します。</p>
+    </div>
+    <div class="info-card">
+      <div class="card-icon">📱</div>
+      <h3>SNSとの関係</h3>
+      <p>広告や通知が「視野」に入っていても気づかないことがある反面、特定の情報だけに過敏になる現象も起きます。</p>
+    </div>
+  </div>
+
+  <div class="quote-box">
+    「私たちは自分が見たいものを見て、見たくないものは見ない。<br>
+    これは弱さではなく、脳が生き残るために進化させた<strong>効率化の仕組み</strong>です。」<br>
+    <span style="color:var(--muted); font-size:0.8rem">— Simons & Chabris (1999) の実験が示したこと</span>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn-primary" onclick="resetAll()">もう一度やってみる</button>
+    <button class="btn-secondary" onclick="alert('このデモは「心理学で学ぶこと」授業用サンプルです。')">このデモについて</button>
+  </div>
+</div>
+
+<script>
+// ===== CONFIG =====
+const ARENA_W = () => document.getElementById('arena').clientWidth;
+const ARENA_H = () => document.getElementById('arena').clientHeight;
+const PLAYER_R = 26; // radius
+const BALL_R   = 11;
+const TASK_DURATION = 30; // seconds
+const GORILLA_APPEAR = 10;  // sec from start
+const GORILLA_LEAVE  = 18;
+
+// ===== STATE =====
+let whitePasses = 0, blackPasses = 0;
+let animFrame, timerInterval;
+let timeLeft = TASK_DURATION;
+let taskStartTime = null;
+let gorillaVisible = false;
+
+// Player definitions
+const players = [
+  { id: 'p0', team: 'white', x:0, y:0, vx:0, vy:0, hasBall: true  },
+  { id: 'p1', team: 'white', x:0, y:0, vx:0, vy:0, hasBall: false },
+  { id: 'p2', team: 'white', x:0, y:0, vx:0, vy:0, hasBall: false },
+  { id: 'p3', team: 'black', x:0, y:0, vx:0, vy:0, hasBall: true  },
+  { id: 'p4', team: 'black', x:0, y:0, vx:0, vy:0, hasBall: false },
+  { id: 'p5', team: 'black', x:0, y:0, vx:0, vy:0, hasBall: false },
+];
+
+let ball = { x:0, y:0, tx:0, ty:0, progress:1, passing:false, fromTeam:'white' };
+
+// Gorilla walk
+let gorillaX = -60, gorillaY = 0;
+
+function rand(min, max) { return Math.random()*(max-min)+min; }
+
+function initPlayers() {
+  const W = ARENA_W(), H = ARENA_H();
+  // White left half, black right half initially
+  players[0].x = rand(60,W*0.4); players[0].y = rand(60,H-60);
+  players[1].x = rand(60,W*0.4); players[1].y = rand(60,H-60);
+  players[2].x = rand(60,W*0.4); players[2].y = rand(60,H-60);
+  players[3].x = rand(W*0.6,W-60); players[3].y = rand(60,H-60);
+  players[4].x = rand(W*0.6,W-60); players[4].y = rand(60,H-60);
+  players[5].x = rand(W*0.6,W-60); players[5].y = rand(60,H-60);
+
+  players.forEach(p => {
+    p.vx = rand(-1.2, 1.2);
+    p.vy = rand(-1.2, 1.2);
+  });
+
+  // Init ball position to player with ball
+  const ballHolder = players.find(p => p.hasBall && p.team==='white');
+  ball.x = ballHolder.x; ball.y = ballHolder.y;
+  ball.progress = 1; ball.passing = false;
+  updateBallEl();
+}
+
+function injectPlayerEls() {
+  const arena = document.getElementById('arena');
+  players.forEach(p => {
+    if (document.getElementById(p.id)) return;
+    const el = document.createElement('div');
+    el.className = `player ${p.team}`;
+    el.id = p.id;
+    el.textContent = p.team === 'white' ? 'W' : 'B';
+    arena.appendChild(el);
+  });
+}
+
+function updatePlayerEls() {
+  players.forEach(p => {
+    const el = document.getElementById(p.id);
+    if (!el) return;
+    el.style.transform = `translate(${p.x - PLAYER_R}px, ${p.y - PLAYER_R}px)`;
+  });
+}
+
+function updateBallEl() {
+  const el = document.getElementById('ball');
+  el.style.transform = `translate(${ball.x - BALL_R}px, ${ball.y - BALL_R}px)`;
+}
+
+// Pass logic: every ~2s try to pass within same team
+let lastPassTime = { white: 0, black: 0 };
+const PASS_INTERVAL = 2200;
+
+function tryPass(now) {
+  ['white','black'].forEach(team => {
+    if (now - lastPassTime[team] < PASS_INTERVAL) return;
+    const holders = players.filter(p => p.team===team && p.hasBall);
+    if (holders.length === 0) return;
+    const holder = holders[0];
+    const receivers = players.filter(p => p.team===team && !p.hasBall);
+    if (receivers.length === 0) return;
+    const target = receivers[Math.floor(Math.random()*receivers.length)];
+    // Start pass
+    ball.passing = true;
+    ball.fromTeam = team;
+    ball.tx = target.x; ball.ty = target.y;
+    ball.sx = holder.x; ball.sy = holder.y;
+    ball.progress = 0;
+    ball.targetPlayer = target;
+    holder.hasBall = false;
+    lastPassTime[team] = now;
+    if (team==='white') whitePasses++;
+    else blackPasses++;
+    document.getElementById('white-count').textContent = whitePasses;
+    document.getElementById('black-count').textContent = blackPasses;
+  });
+}
+
+const PASS_SPEED = 0.05;
+
+function moveBall() {
+  if (!ball.passing) {
+    // Follow ball holder
+    const holder = players.find(p => p.hasBall && p.team === 'white') ||
+                   players.find(p => p.hasBall);
+    if (holder) { ball.x = holder.x; ball.y = holder.y; }
+    return;
+  }
+  ball.progress = Math.min(1, ball.progress + PASS_SPEED);
+  ball.x = ball.sx + (ball.tx - ball.sx)*ball.progress;
+  ball.y = ball.sy + (ball.ty - ball.sy)*ball.progress;
+
+  if (ball.progress >= 1) {
+    ball.passing = false;
+    ball.targetPlayer.hasBall = true;
+  }
+}
+
+function movePlayer(p) {
+  const W = ARENA_W(), H = ARENA_H();
+  p.x += p.vx; p.y += p.vy;
+  if (p.x < PLAYER_R || p.x > W-PLAYER_R) p.vx *= -1;
+  if (p.y < PLAYER_R || p.y > H-PLAYER_R) p.vy *= -1;
+  p.x = Math.max(PLAYER_R, Math.min(W-PLAYER_R, p.x));
+  p.y = Math.max(PLAYER_R, Math.min(H-PLAYER_R, p.y));
+}
+
+function moveGorilla() {
+  const W = ARENA_W(), H = ARENA_H();
+  const el = document.getElementById('gorilla');
+  if (!gorillaVisible) { el.style.opacity = 0; return; }
+  el.style.opacity = 1;
+  gorillaX += 1.5;
+  el.style.transform = `translate(${gorillaX}px, ${gorillaY}px)`;
+}
+
+function gameLoop(ts) {
+  const elapsed = (ts - taskStartTime) / 1000;
+
+  // Gorilla appearance
+  if (elapsed >= GORILLA_APPEAR && elapsed < GORILLA_LEAVE && !gorillaVisible) {
+    gorillaVisible = true;
+    const H = ARENA_H();
+    gorillaX = -60;
+    gorillaY = H * 0.3;
+  }
+  if (elapsed >= GORILLA_LEAVE && gorillaVisible) {
+    gorillaVisible = false;
+  }
+
+  players.forEach(p => movePlayer(p));
+  // Update pass targets if ball is passing
+  if (ball.passing && ball.targetPlayer) {
+    ball.tx = ball.targetPlayer.x;
+    ball.ty = ball.targetPlayer.y;
+  }
+  moveBall();
+  moveGorilla();
+
+  updatePlayerEls();
+  updateBallEl();
+
+  tryPass(elapsed * 1000);
+
+  animFrame = requestAnimationFrame(gameLoop);
+}
+
+function startTask() {
+  showScreen('screen-task');
+  whitePasses = 0; blackPasses = 0;
+  timeLeft = TASK_DURATION;
+  document.getElementById('white-count').textContent = '0';
+  document.getElementById('black-count').textContent = '0';
+  document.getElementById('timer-display').textContent = TASK_DURATION;
+  gorillaVisible = false;
+  lastPassTime = { white: 0, black: 0 };
+
+  injectPlayerEls();
+  // Small delay for layout
+  setTimeout(() => {
+    initPlayers();
+    updatePlayerEls();
+
+    taskStartTime = performance.now();
+    animFrame = requestAnimationFrame(gameLoop);
+
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      document.getElementById('timer-display').textContent = timeLeft;
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        cancelAnimationFrame(animFrame);
+        gorillaVisible = false;
+        document.getElementById('gorilla').style.opacity = 0;
+        showScreen('screen-answer');
+        document.getElementById('actual-white').textContent = whitePasses;
+      }
+    }, 1000);
+  }, 100);
+}
+
+function submitCount() {
+  const input = document.getElementById('user-count');
+  const val = parseInt(input.value);
+  if (isNaN(val) || val < 0) {
+    input.style.borderColor = 'var(--accent)';
+    return;
+  }
+  document.getElementById('user-answer').textContent = val;
+  document.getElementById('count-reveal').style.display = 'block';
+
+  // Hide input & button, show next
+  input.parentElement.style.display = 'none';
+  document.querySelector('#screen-answer .btn-primary').textContent = '次へ →';
+  document.querySelector('#screen-answer .btn-primary').onclick = () => showScreen('screen-explain');
+}
+
+function resetAll() {
+  document.getElementById('user-count').value = '';
+  document.getElementById('count-reveal').style.display = 'none';
+  document.getElementById('user-count').parentElement.style.display = 'flex';
+  const btn = document.querySelector('#screen-answer .btn-primary');
+  btn.textContent = '答えを見る';
+  btn.onclick = submitCount;
+  showScreen('screen-intro');
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+</script>
+</body>
+</html>
