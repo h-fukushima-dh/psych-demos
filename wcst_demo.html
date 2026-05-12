@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>カード分類課題 — 前頭葉機能の教育的体験</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700;900&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  --bg:      #F8F8FA;
+  --ink:     #16161E;
+  --surface: #EDEDF2;
+  --card:    #FFFFFF;
+  --border:  #DCDCE8;
+  --muted:   #9898B0;
+  --red:     #E03030;
+  --blue:    #2060D0;
+  --green:   #18A050;
+  --yellow:  #C88000;
+  --correct: #18A050;
+  --wrong:   #E03030;
+  --purple:  #7030C8;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans JP', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  user-select: none;
+}
+
+.screen { display: none; }
+.screen.active { display: flex; flex-direction: column; align-items: center; }
+
+/* ======== INTRO ======== */
+#screen-intro {
+  min-height: 100vh;
+  justify-content: center;
+  padding: 2.5rem 1.2rem;
+  text-align: center;
+  gap: 1.6rem;
+}
+.tag {
+  font-family: 'Space Mono', monospace;
+  font-size: .68rem; letter-spacing: .22em; color: var(--muted);
+  text-transform: uppercase; border: 1px solid var(--border);
+  border-radius: 20px; padding: .3rem 1rem;
+  display: inline-block;
+  opacity: 0; animation: up .5s .1s forwards;
+}
+.intro-h1 {
+  font-size: clamp(1.8rem,5.5vw,3rem); font-weight: 900; line-height: 1.2;
+  opacity: 0; animation: up .5s .2s forwards;
+}
+.intro-h1 em { font-style: normal; color: var(--purple); }
+.intro-p {
+  max-width: 460px; font-size: .95rem; line-height: 2;
+  color: var(--muted); font-weight: 300;
+  opacity: 0; animation: up .5s .32s forwards;
+}
+
+/* Sample cards row */
+.sample-row {
+  display: flex; gap: .8rem; justify-content: center; flex-wrap: wrap;
+  opacity: 0; animation: up .5s .44s forwards;
+}
+
+/* Card base style */
+.card-shape {
+  width: 70px; height: 90px;
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 3px;
+  box-shadow: 0 2px 8px rgba(22,22,30,.08);
+}
+
+.rule-chips {
+  display: flex; gap: .5rem; flex-wrap: wrap; justify-content: center;
+  opacity: 0; animation: up .5s .54s forwards;
+}
+.rule-chip {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: .4rem .8rem;
+  font-size: .8rem; font-weight: 700;
+  display: flex; align-items: center; gap: .35rem;
+}
+
+.notice {
+  background: #FFF8E8; border: 1.5px solid #E8C860;
+  border-radius: 10px; padding: .85rem 1.1rem;
+  max-width: 420px; font-size: .82rem; color: #8A6010;
+  line-height: 1.8; font-weight: 300;
+  opacity: 0; animation: up .5s .62s forwards;
+}
+
+.btn-start {
+  background: var(--ink); color: #fff; border: none;
+  padding: 1.1rem 3rem; font-size: 1rem;
+  font-family: 'Noto Sans JP', sans-serif; font-weight: 700;
+  border-radius: 50px; cursor: pointer;
+  transition: transform .15s, box-shadow .15s;
+  opacity: 0; animation: up .5s .72s forwards;
+}
+.btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(22,22,30,.18); }
+
+/* ======== GAME ======== */
+#screen-game {
+  min-height: 100vh;
+  padding: 1rem 1rem 2rem;
+  gap: 0; width: 100%;
+  max-width: 600px; margin: 0 auto;
+  justify-content: flex-start;
+}
+
+/* Top bar */
+.game-topbar {
+  width: 100%;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: .5rem 0; margin-bottom: .5rem;
+}
+.game-label { font-family: 'Space Mono', monospace; font-size: .68rem; letter-spacing: .1em; color: var(--muted); }
+
+/* Stat chips */
+.stat-row {
+  width: 100%; display: flex; gap: .4rem; margin-bottom: .8rem; flex-wrap: wrap;
+}
+.stat-chip {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: .35rem .7rem;
+  display: flex; flex-direction: column; align-items: center;
+  flex: 1; min-width: 60px;
+}
+.stat-num { font-family: 'Space Mono', monospace; font-size: 1.1rem; font-weight: 700; }
+.stat-lbl { font-size: .62rem; color: var(--muted); margin-top: 1px; }
+
+/* Progress bar */
+.prog-wrap { width: 100%; margin-bottom: 1rem; }
+.prog-label { font-size: .72rem; color: var(--muted); margin-bottom: .25rem; display: flex; justify-content: space-between; }
+.prog-bar { height: 6px; background: var(--surface); border-radius: 3px; overflow: hidden; }
+.prog-fill { height: 100%; background: var(--purple); border-radius: 3px; transition: width .4s ease; width: 0%; }
+
+/* Reference cards row */
+.ref-label {
+  font-size: .72rem; color: var(--muted); margin-bottom: .4rem;
+  font-family: 'Space Mono', monospace; letter-spacing: .08em;
+}
+.ref-row {
+  display: flex; gap: .5rem; justify-content: center; margin-bottom: 1rem;
+}
+
+/* Playing card */
+.play-card {
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 3px;
+  box-shadow: 0 2px 10px rgba(22,22,30,.08);
+  transition: transform .15s, box-shadow .15s;
+  position: relative; overflow: hidden;
+}
+.play-card.ref-card { width: 68px; height: 85px; }
+.play-card.target-card {
+  width: clamp(100px, 26vw, 130px);
+  height: clamp(130px, 34vw, 168px);
+}
+.play-card.ref-card:hover, .ref-card-btn:hover .play-card {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 18px rgba(22,22,30,.14);
+}
+.play-card.feedback-correct { border-color: var(--correct); }
+.play-card.feedback-wrong { border-color: var(--wrong); }
+
+/* Feedback flash overlay */
+.card-overlay {
+  position: absolute; inset: 0; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem; opacity: 0;
+  transition: opacity .15s;
+  pointer-events: none;
+}
+.card-overlay.show-correct { background: rgba(24,160,80,.15); opacity: 1; }
+.card-overlay.show-wrong   { background: rgba(224,48,48,.15); opacity: 1; }
+
+/* Shapes inside cards */
+.shape-item {
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Target area */
+.target-area {
+  width: 100%; display: flex; flex-direction: column; align-items: center;
+  margin-bottom: 1rem;
+}
+.target-label { font-size: .75rem; color: var(--muted); margin-bottom: .5rem; }
+.target-wrap { position: relative; display: inline-block; }
+
+/* Feedback bar */
+.feedback-bar {
+  width: 100%; text-align: center;
+  font-size: 1rem; font-weight: 700;
+  min-height: 1.6rem; margin-bottom: .6rem;
+  transition: opacity .3s;
+}
+.fb-correct { color: var(--correct); }
+.fb-wrong   { color: var(--wrong); }
+
+/* Ref card buttons */
+.ref-card-btn {
+  background: none; border: none; cursor: pointer; padding: 0;
+  display: flex; flex-direction: column; align-items: center; gap: .3rem;
+}
+.ref-btn-label { font-size: .65rem; color: var(--muted); font-family: 'Space Mono', monospace; }
+
+/* Error log */
+.error-log {
+  width: 100%; background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: .7rem 1rem;
+  max-height: 90px; overflow-y: auto;
+}
+.error-log-title { font-size: .68rem; color: var(--muted); font-family: 'Space Mono', monospace; letter-spacing: .1em; margin-bottom: .35rem; }
+.error-item { font-size: .75rem; color: var(--wrong); margin-bottom: .15rem; }
+.error-item.persev { color: var(--yellow); }
+.error-none { font-size: .75rem; color: var(--muted); }
+
+/* ======== RESULT ======== */
+#screen-result {
+  min-height: 100vh; padding: 2rem 1.2rem 3rem;
+  gap: 1.4rem; max-width: 640px;
+  margin: 0 auto; width: 100%;
+  justify-content: flex-start;
+}
+.res-header { text-align: center; width: 100%; }
+.res-h { font-size: clamp(1.4rem,4vw,1.9rem); font-weight: 900; line-height: 1.2; margin-bottom: .4rem; }
+.res-h em { font-style: normal; color: var(--purple); }
+
+/* Score cards */
+.score-grid { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; }
+.score-box {
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 12px; padding: 1rem .8rem; text-align: center;
+}
+.score-num { font-family: 'Space Mono', monospace; font-size: 1.6rem; font-weight: 700; display: block; }
+.score-lbl { font-size: .72rem; color: var(--muted); margin-top: .15rem; line-height: 1.4; }
+
+/* Category timeline */
+.cat-timeline { width: 100%; background: var(--card); border: 1.5px solid var(--border); border-radius: 14px; padding: 1.2rem 1.3rem; }
+.cat-timeline h3 { font-size: .9rem; font-weight: 900; margin-bottom: .8rem; }
+.cat-row { display: flex; align-items: center; gap: .6rem; margin-bottom: .5rem; }
+.cat-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.cat-info { font-size: .82rem; flex: 1; }
+.cat-trials { font-family: 'Space Mono', monospace; font-size: .78rem; color: var(--muted); }
+
+/* Explain */
+.explain-box {
+  width: 100%; background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 14px; padding: 1.2rem 1.3rem;
+}
+.explain-box h3 { font-size: .95rem; font-weight: 900; margin-bottom: .75rem; }
+.explain-box p { font-size: .87rem; color: var(--muted); line-height: 1.9; font-weight: 300; margin-bottom: .55rem; }
+.explain-box p:last-child { margin-bottom: 0; }
+.explain-box strong { color: var(--ink); font-weight: 700; }
+
+.score-terms { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; }
+.term-item { background: var(--surface); border-radius: 8px; padding: .75rem .9rem; }
+.term-title { font-size: .82rem; font-weight: 700; margin-bottom: .2rem; }
+.term-body { font-size: .75rem; color: var(--muted); line-height: 1.6; font-weight: 300; }
+
+.discuss-box { width: 100%; background: var(--card); border: 1.5px solid var(--border); border-radius: 14px; padding: 1.2rem 1.3rem; }
+.discuss-box h3 { font-size: .95rem; font-weight: 900; margin-bottom: .75rem; }
+.dq { background: var(--surface); border-radius: 8px; padding: .7rem .9rem; font-size: .84rem; line-height: 1.7; display: flex; gap: .5rem; margin-bottom: .45rem; }
+.dq:last-child { margin-bottom: 0; }
+
+.btn-retry {
+  width: 100%; background: var(--ink); color: #fff; border: none;
+  padding: 1rem; font-size: .95rem;
+  font-family: 'Noto Sans JP', sans-serif; font-weight: 700;
+  border-radius: 50px; cursor: pointer; transition: opacity .15s, transform .15s;
+}
+.btn-retry:hover { opacity: .85; transform: translateY(-1px); }
+
+@keyframes up { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body>
+
+<!-- ======== INTRO ======== -->
+<div id="screen-intro" class="screen active">
+  <span class="tag">神経心理学 ／ 前頭葉機能の教育的体験</span>
+  <h1 class="intro-h1">カードを<em>正しく</em><br>分類できるか？</h1>
+  <p class="intro-p">
+    カードを4つのグループに分類してください。<br>
+    「正解」「不正解」のフィードバックだけを頼りに、<strong>自分でルールを見つけ出してください</strong>。<br>
+    そしてルールは途中で変わります。
+  </p>
+
+  <!-- Sample cards (illustrative) -->
+  <div class="sample-row" id="sample-row"></div>
+
+  <div class="rule-chips">
+    <div class="rule-chip"><span style="color:var(--red)">■</span> 色で分類</div>
+    <div class="rule-chip"><span style="color:var(--purple)">▲</span> 形で分類</div>
+    <div class="rule-chip"><span>●●●</span> 数で分類</div>
+  </div>
+
+  <div class="notice">
+    ⚠️ これはWCST（ウィスコンシンカードソーティングテスト）に着想を得た<strong>教育用デモ</strong>です。<br>
+    臨床的評価・診断目的には使用できません。
+  </div>
+  <button class="btn-start" onclick="startGame()">課題スタート →</button>
+</div>
+
+<!-- ======== GAME ======== -->
+<div id="screen-game" class="screen">
+  <div class="game-topbar">
+    <span class="game-label" id="game-label">カード分類課題</span>
+    <span class="game-label" id="category-label">カテゴリー 1 / 3</span>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-chip">
+      <span class="stat-num" id="stat-trial">0</span>
+      <span class="stat-lbl">試行数</span>
+    </div>
+    <div class="stat-chip">
+      <span class="stat-num" id="stat-correct" style="color:var(--correct)">0</span>
+      <span class="stat-lbl">正解</span>
+    </div>
+    <div class="stat-chip">
+      <span class="stat-num" id="stat-error" style="color:var(--wrong)">0</span>
+      <span class="stat-lbl">エラー</span>
+    </div>
+    <div class="stat-chip">
+      <span class="stat-num" id="stat-persev" style="color:var(--yellow)">0</span>
+      <span class="stat-lbl">保続エラー</span>
+    </div>
+    <div class="stat-chip">
+      <span class="stat-num" id="stat-cat" style="color:var(--purple)">0</span>
+      <span class="stat-lbl">完了カテゴリー</span>
+    </div>
+  </div>
+
+  <div class="prog-wrap">
+    <div class="prog-label">
+      <span>進捗</span>
+      <span id="prog-text">0 / 64 試行</span>
+    </div>
+    <div class="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
+  </div>
+
+  <!-- Reference cards -->
+  <div class="ref-label">▼ 参照カード（どのグループに入る？）</div>
+  <div class="ref-row" id="ref-row"><!-- injected --></div>
+
+  <!-- Target card -->
+  <div class="target-area">
+    <div class="target-label">分類するカード</div>
+    <div class="target-wrap">
+      <div class="play-card target-card" id="target-card"><!-- injected --></div>
+    </div>
+  </div>
+
+  <!-- Feedback -->
+  <div class="feedback-bar" id="feedback-bar"></div>
+
+  <!-- Error log -->
+  <div class="error-log">
+    <div class="error-log-title">エラーログ</div>
+    <div id="error-log-body"><span class="error-none">エラーなし</span></div>
+  </div>
+</div>
+
+<!-- ======== RESULT ======== -->
+<div id="screen-result" class="screen">
+  <div class="res-header">
+    <div class="res-h">課題完了！<em>あなたの成績</em></div>
+  </div>
+
+  <div class="score-grid">
+    <div class="score-box">
+      <span class="score-num" id="r-trials">—</span>
+      <div class="score-lbl">総試行数</div>
+    </div>
+    <div class="score-box">
+      <span class="score-num" id="r-cat" style="color:var(--purple)">—</span>
+      <div class="score-lbl">完了カテゴリー数</div>
+    </div>
+    <div class="score-box">
+      <span class="score-num" id="r-errors" style="color:var(--wrong)">—</span>
+      <div class="score-lbl">総エラー数</div>
+    </div>
+    <div class="score-box">
+      <span class="score-num" id="r-persev" style="color:var(--yellow)">—</span>
+      <div class="score-lbl">保続エラー数</div>
+    </div>
+    <div class="score-box">
+      <span class="score-num" id="r-acc">—</span>
+      <div class="score-lbl">正答率</div>
+    </div>
+    <div class="score-box">
+      <span class="score-num" id="r-first-cat">—</span>
+      <div class="score-lbl">最初のカテゴリー<br>完了までの試行</div>
+    </div>
+  </div>
+
+  <div class="cat-timeline" id="cat-timeline">
+    <h3>カテゴリー別の記録</h3>
+  </div>
+
+  <div class="explain-box">
+    <h3>🧠 この課題が測っているもの</h3>
+    <p>この課題はWCST（ウィスコンシンカードソーティングテスト）に着想を得た教育用デモです。WCSTはMilner (1963)が<strong>前頭葉機能の評価</strong>に用いたことで広く知られる神経心理学的検査です。</p>
+    <p><strong>「ルールを自分で発見する」能力（帰納的推論）</strong>、<strong>「ルールが変わったことに気づき切り替える」能力（認知的柔軟性）</strong>、そして<strong>「前のルールに引きずられるエラー（保続）を起こさない」能力（抑制制御）</strong>を測定します。</p>
+    <p>前頭葉損傷やADHD・統合失調症の方は<strong>保続エラー（古いルールに固執する誤り）</strong>が増える傾向があります。</p>
+  </div>
+
+  <div>
+    <div style="font-family:'Space Mono',monospace;font-size:.68rem;letter-spacing:.15em;color:var(--muted);text-transform:uppercase;margin-bottom:.6rem">スコアの見方</div>
+    <div class="score-terms">
+      <div class="term-item">
+        <div class="term-title" style="color:var(--purple)">完了カテゴリー数</div>
+        <div class="term-body">正しいルールで連続10回正解できた回数。多いほど良い（最大3）。</div>
+      </div>
+      <div class="term-item">
+        <div class="term-title" style="color:var(--wrong)">総エラー数</div>
+        <div class="term-body">全試行中の誤答数。少ない方が良い。</div>
+      </div>
+      <div class="term-item">
+        <div class="term-title" style="color:var(--yellow)">保続エラー</div>
+        <div class="term-body">前のルールのまま答えたエラー。前頭葉機能・認知的柔軟性の指標。</div>
+      </div>
+      <div class="term-item">
+        <div class="term-title" style="color:var(--ink)">正答率</div>
+        <div class="term-body">全試行中の正解割合。ルール発見の速さと正確さを示す。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="discuss-box">
+    <h3>💬 体験を振り返ろう</h3>
+    <div class="dq"><span>🔍</span><span>ルールが変わった瞬間はすぐに気づけましたか？ 何試行目くらいで新しいルールに気づいた？</span></div>
+    <div class="dq"><span>🔄</span><span>保続エラーが出た場合、「前のルールに引きずられた」感覚はありましたか？</span></div>
+    <div class="dq"><span>🏥</span><span>前頭葉損傷の患者さんはこの課題がとても難しくなります。なぜか考えてみよう。</span></div>
+    <div class="dq"><span>🧩</span><span>「帰納的推論」「認知的柔軟性」「抑制制御」の3つをそれぞれ日常で使っている場面を考えてみよう。</span></div>
+  </div>
+
+  <button class="btn-retry" onclick="resetAll()">もう一度やってみる</button>
+</div>
+
+<script>
+// ===== CARD DEFINITIONS =====
+const COLORS  = ['red','blue','green','yellow'];
+const SHAPES  = ['circle','triangle','cross','star'];
+const COUNTS  = [1, 2, 3, 4];
+
+// Color labels / styles
+const COLOR_STYLE = {
+  red:    '#E03030',
+  blue:   '#2060D0',
+  green:  '#18A050',
+  yellow: '#C88000',
+};
+const COLOR_LABEL = { red:'赤', blue:'青', green:'緑', yellow:'黄' };
+const SHAPE_LABEL = { circle:'丸', triangle:'三角', cross:'十字', star:'星' };
+
+// ===== REFERENCE CARDS =====
+// One of each color, shape changes, count varies
+// ref[0] = color rule anchor, ref[1] = shape rule anchor, ref[2] = count rule anchor, ref[3] = mixed
+const REF_CARDS = [
+  { color:'red',    shape:'circle',   count:1 },
+  { color:'blue',   shape:'triangle', count:2 },
+  { color:'green',  shape:'cross',    count:3 },
+  { color:'yellow', shape:'star',     count:4 },
+];
+
+// ===== RULES =====
+// Each rule defines which ref card index is "correct" for a given test card
+const RULES = ['color','shape','count'];
+const RULE_LABEL = { color:'色', shape:'形', count:'数' };
+const RULE_COLOR = { color:'#E03030', shape:'#7030C8', count:'#2060D0' };
+
+// ===== GAME CONFIG =====
+const CORRECT_STREAK_TO_COMPLETE = 10;
+const MAX_CATEGORIES = 3;
+const MAX_TRIALS = 64;
+
+// ===== STATE =====
+let ruleOrder   = [];
+let ruleIdx     = 0;
+let currentRule = '';
+let prevRule    = '';
+let streak      = 0;
+let totalTrials = 0;
+let totalCorrect= 0;
+let totalErrors = 0;
+let persevErrors= 0;
+let catsCompleted = 0;
+let waitingForResponse = false;
+let testCard    = null;
+let categoryLog = []; // { rule, trialsToComplete, errors }
+let catTrials   = 0;
+let catErrors   = 0;
+let firstCatTrials = 0;
+
+// ===== SVG SHAPE RENDERER =====
+function shapeIcon(shape, color, size) {
+  const c = COLOR_STYLE[color];
+  const s = size;
+  switch(shape) {
+    case 'circle':
+      return `<svg width="${s}" height="${s}" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="${c}"/></svg>`;
+    case 'triangle':
+      return `<svg width="${s}" height="${s}" viewBox="0 0 40 40"><polygon points="20,4 36,36 4,36" fill="${c}"/></svg>`;
+    case 'cross':
+      return `<svg width="${s}" height="${s}" viewBox="0 0 40 40">
+        <rect x="15" y="4" width="10" height="32" fill="${c}"/>
+        <rect x="4" y="15" width="32" height="10" fill="${c}"/>
+      </svg>`;
+    case 'star':
+      return `<svg width="${s}" height="${s}" viewBox="0 0 40 40">
+        <polygon points="20,3 25,14 37,14 28,22 31,34 20,27 9,34 12,22 3,14 15,14" fill="${c}"/>
+      </svg>`;
+  }
+}
+
+function buildCardHTML(card, isTarget) {
+  const size = isTarget ? 28 : 18;
+  const gap = isTarget ? 3 : 2;
+  const items = [];
+  for (let i = 0; i < card.count; i++) {
+    items.push(`<div class="shape-item">${shapeIcon(card.shape, card.color, size)}</div>`);
+  }
+  return `<div style="display:flex;flex-direction:column;align-items:center;gap:${gap}px">${items.join('')}</div>`;
+}
+
+// ===== INIT SAMPLE CARDS =====
+function buildSampleCards() {
+  const row = document.getElementById('sample-row');
+  row.innerHTML = '';
+  const samples = [
+    { color:'red',    shape:'circle',   count:2 },
+    { color:'blue',   shape:'star',     count:3 },
+    { color:'green',  shape:'triangle', count:1 },
+    { color:'yellow', shape:'cross',    count:4 },
+  ];
+  samples.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'card-shape';
+    div.innerHTML = buildCardHTML(c, false);
+    row.appendChild(div);
+  });
+}
+
+// ===== RENDER REFERENCE CARDS =====
+function renderRefCards() {
+  const row = document.getElementById('ref-row');
+  row.innerHTML = '';
+  REF_CARDS.forEach((c, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'ref-card-btn';
+    btn.innerHTML = `
+      <div class="play-card ref-card" id="ref-${i}">
+        ${buildCardHTML(c, false)}
+      </div>
+      <span class="ref-btn-label">${i+1}</span>
+    `;
+    btn.onclick = () => handleChoice(i);
+    row.appendChild(btn);
+  });
+}
+
+// ===== GENERATE RANDOM TEST CARD =====
+function generateTestCard() {
+  const color  = COLORS[Math.floor(Math.random() * 4)];
+  const shape  = SHAPES[Math.floor(Math.random() * 4)];
+  const count  = COUNTS[Math.floor(Math.random() * 4)];
+  return { color, shape, count };
+}
+
+// ===== CORRECT REF INDEX for current rule =====
+function correctRefIdx(card, rule) {
+  switch(rule) {
+    case 'color':  return REF_CARDS.findIndex(r => r.color  === card.color);
+    case 'shape':  return REF_CARDS.findIndex(r => r.shape  === card.shape);
+    case 'count':  return REF_CARDS.findIndex(r => r.count  === card.count);
+  }
+}
+
+// ===== RENDER TARGET CARD =====
+function renderTargetCard() {
+  testCard = generateTestCard();
+  const el = document.getElementById('target-card');
+  el.innerHTML = buildCardHTML(testCard, true);
+  el.className = 'play-card target-card';
+  // Remove overlay
+  const old = el.querySelector('.card-overlay');
+  if (old) old.remove();
+}
+
+// ===== HANDLE CHOICE =====
+function handleChoice(refIdx) {
+  if (!waitingForResponse) return;
+  waitingForResponse = false;
+
+  const correct = correctRefIdx(testCard, currentRule);
+  const isCorrect = refIdx === correct;
+
+  // Check perseverative error: would have been correct under prev rule?
+  let isPersev = false;
+  if (!isCorrect && prevRule) {
+    const prevCorrect = correctRefIdx(testCard, prevRule);
+    if (refIdx === prevCorrect) isPersev = true;
+  }
+
+  totalTrials++;
+  catTrials++;
+  document.getElementById('stat-trial').textContent = totalTrials;
+  document.getElementById('prog-fill').style.width  = (totalTrials / MAX_TRIALS * 100) + '%';
+  document.getElementById('prog-text').textContent  = `${totalTrials} / ${MAX_TRIALS} 試行`;
+
+  if (isCorrect) {
+    totalCorrect++;
+    streak++;
+    document.getElementById('stat-correct').textContent = totalCorrect;
+    showFeedback(true, refIdx);
+  } else {
+    totalErrors++;
+    catErrors++;
+    streak = 0;
+    document.getElementById('stat-error').textContent = totalErrors;
+    if (isPersev) {
+      persevErrors++;
+      document.getElementById('stat-persev').textContent = persevErrors;
+      addErrorLog(`試行${totalTrials}：保続エラー（前ルール「${RULE_LABEL[prevRule]}」で回答）`, true);
+    } else {
+      addErrorLog(`試行${totalTrials}：エラー（正解は${correct+1}番）`, false);
+    }
+    showFeedback(false, refIdx);
+  }
+
+  // Check category completion
+  if (streak >= CORRECT_STREAK_TO_COMPLETE) {
+    catsCompleted++;
+    document.getElementById('stat-cat').textContent = catsCompleted;
+    if (catsCompleted === 1) firstCatTrials = totalTrials;
+    categoryLog.push({ rule: currentRule, trialsToComplete: catTrials, errors: catErrors });
+    catTrials = 0; catErrors = 0; streak = 0;
+    setTimeout(() => switchRule(), 700);
+  } else if (totalTrials >= MAX_TRIALS) {
+    setTimeout(() => endGame(), 700);
+  } else {
+    setTimeout(() => {
+      clearFeedback();
+      renderTargetCard();
+      waitingForResponse = true;
+    }, 500);
+  }
+}
+
+function showFeedback(correct, refIdx) {
+  const fb = document.getElementById('feedback-bar');
+  fb.textContent = correct ? '✓ 正解！' : '✗ 不正解';
+  fb.className = 'feedback-bar ' + (correct ? 'fb-correct' : 'fb-wrong');
+
+  const refEl = document.getElementById(`ref-${refIdx}`);
+  if (refEl) {
+    refEl.classList.add(correct ? 'feedback-correct' : 'feedback-wrong');
+    const ov = document.createElement('div');
+    ov.className = 'card-overlay';
+    ov.textContent = correct ? '✓' : '✗';
+    ov.style.color = correct ? 'var(--correct)' : 'var(--wrong)';
+    refEl.appendChild(ov);
+    requestAnimationFrame(() => ov.classList.add(correct ? 'show-correct' : 'show-wrong'));
+  }
+}
+
+function clearFeedback() {
+  document.getElementById('feedback-bar').textContent = '';
+  document.getElementById('feedback-bar').className = 'feedback-bar';
+  // Remove overlays from ref cards
+  document.querySelectorAll('.ref-card').forEach(el => {
+    el.classList.remove('feedback-correct','feedback-wrong');
+    const ov = el.querySelector('.card-overlay');
+    if (ov) ov.remove();
+  });
+}
+
+function addErrorLog(msg, isPersev) {
+  const body = document.getElementById('error-log-body');
+  const none = body.querySelector('.error-none');
+  if (none) none.remove();
+  const div = document.createElement('div');
+  div.className = 'error-item' + (isPersev ? ' persev' : '');
+  div.textContent = msg;
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+}
+
+// ===== SWITCH RULE =====
+function switchRule() {
+  if (catsCompleted >= MAX_CATEGORIES || totalTrials >= MAX_TRIALS) {
+    endGame(); return;
+  }
+  prevRule = currentRule;
+  // Pick next rule (not same as current)
+  const remaining = ruleOrder.filter((r,i) => i > ruleIdx - 1 && i >= ruleOrder.indexOf(currentRule) + 1);
+  if (remaining.length === 0) { endGame(); return; }
+  currentRule = ruleOrder[ruleOrder.indexOf(currentRule) + 1];
+  if (!currentRule) { endGame(); return; }
+  ruleIdx++;
+
+  document.getElementById('category-label').textContent = `カテゴリー ${catsCompleted+1} / ${MAX_CATEGORIES}`;
+
+  clearFeedback();
+  document.getElementById('feedback-bar').textContent = '★ ルールが変わりました';
+  document.getElementById('feedback-bar').className = 'feedback-bar';
+  document.getElementById('feedback-bar').style.color = 'var(--purple)';
+
+  setTimeout(() => {
+    document.getElementById('feedback-bar').textContent = '';
+    document.getElementById('feedback-bar').style.color = '';
+    renderTargetCard();
+    waitingForResponse = true;
+  }, 1200);
+}
+
+// ===== START =====
+function startGame() {
+  // Reset state
+  ruleOrder     = [...RULES].sort(() => Math.random()-.5);
+  ruleIdx       = 0;
+  currentRule   = ruleOrder[0];
+  prevRule      = '';
+  streak        = 0;
+  totalTrials   = 0;
+  totalCorrect  = 0;
+  totalErrors   = 0;
+  persevErrors  = 0;
+  catsCompleted = 0;
+  catTrials     = 0;
+  catErrors     = 0;
+  firstCatTrials= 0;
+  categoryLog   = [];
+  waitingForResponse = false;
+
+  document.getElementById('stat-trial').textContent   = '0';
+  document.getElementById('stat-correct').textContent = '0';
+  document.getElementById('stat-error').textContent   = '0';
+  document.getElementById('stat-persev').textContent  = '0';
+  document.getElementById('stat-cat').textContent     = '0';
+  document.getElementById('prog-fill').style.width    = '0%';
+  document.getElementById('prog-text').textContent    = '0 / 64 試行';
+  document.getElementById('feedback-bar').textContent = '';
+  document.getElementById('feedback-bar').className   = 'feedback-bar';
+  document.getElementById('error-log-body').innerHTML = '<span class="error-none">エラーなし</span>';
+  document.getElementById('category-label').textContent = `カテゴリー 1 / ${MAX_CATEGORIES}`;
+
+  renderRefCards();
+  renderTargetCard();
+  showScreen('screen-game');
+
+  setTimeout(() => { waitingForResponse = true; }, 400);
+}
+
+// ===== END =====
+function endGame() {
+  waitingForResponse = false;
+  // If current category not completed, log partial
+  if (catTrials > 0) {
+    categoryLog.push({ rule: currentRule, trialsToComplete: catTrials, errors: catErrors, partial: true });
+  }
+
+  const acc = totalTrials > 0 ? Math.round(totalCorrect / totalTrials * 100) : 0;
+
+  document.getElementById('r-trials').textContent  = totalTrials;
+  document.getElementById('r-cat').textContent     = `${catsCompleted} / ${MAX_CATEGORIES}`;
+  document.getElementById('r-errors').textContent  = totalErrors;
+  document.getElementById('r-persev').textContent  = persevErrors;
+  document.getElementById('r-acc').textContent     = acc + '%';
+  document.getElementById('r-first-cat').textContent = firstCatTrials > 0 ? firstCatTrials + '試行' : '—';
+
+  // Category timeline
+  const tl = document.getElementById('cat-timeline');
+  tl.innerHTML = '<h3>カテゴリー別の記録</h3>';
+  if (categoryLog.length === 0) {
+    const p = document.createElement('p');
+    p.style.cssText = 'font-size:.82rem;color:var(--muted)';
+    p.textContent = 'カテゴリー完了なし';
+    tl.appendChild(p);
+  } else {
+    categoryLog.forEach((c, i) => {
+      const row = document.createElement('div');
+      row.className = 'cat-row';
+      const dot = document.createElement('div');
+      dot.className = 'cat-dot';
+      dot.style.background = RULE_COLOR[c.rule];
+      const info = document.createElement('div');
+      info.className = 'cat-info';
+      info.innerHTML = `<strong style="color:${RULE_COLOR[c.rule]}">${RULE_LABEL[c.rule]}ルール</strong>　${c.partial ? '(未完了)' : '完了'}`;
+      const trials = document.createElement('div');
+      trials.className = 'cat-trials';
+      trials.textContent = `${c.trialsToComplete}試行 / エラー${c.errors}回`;
+      row.appendChild(dot);
+      row.appendChild(info);
+      row.appendChild(trials);
+      tl.appendChild(row);
+    });
+  }
+
+  showScreen('screen-result');
+}
+
+// ===== HELPERS =====
+function resetAll() {
+  buildSampleCards();
+  showScreen('screen-intro');
+}
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => { s.classList.remove('active'); s.style.display='none'; });
+  const el = document.getElementById(id);
+  el.classList.add('active'); el.style.display='flex';
+  window.scrollTo(0,0);
+}
+
+// Init
+buildSampleCards();
+document.querySelectorAll('.screen').forEach(s => { s.style.display='none'; });
+document.getElementById('screen-intro').style.display='flex';
+document.getElementById('screen-intro').classList.add('active');
+</script>
+</body>
+</html>
